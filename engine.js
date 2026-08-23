@@ -280,6 +280,7 @@ function freshGameState(){
     matchSolved:false,
     matchSelections:{},
     investigationActionsDone:new Set(), // إجراءات فحص/تفتيش/تحريات ميدانية اتنفذت
+    backgroundChecks:new Set(), // suspectId — صحائف الحالة الجنائية التي طلبها اللاعب
   };
 }
 
@@ -1152,6 +1153,7 @@ function enterCase(caseData, opts={}){
     game.matchSolved = !!saved.matchSolved;
     game.matchSelections = saved.matchSelections || {};
     game.investigationActionsDone = new Set(saved.investigationActionsDone || []);
+    game.backgroundChecks = new Set(saved.backgroundChecks || []);
   } else {
     addUnlockedId(CASE.id); // قضية مجانية، تتسجل كمفتوحة أول ما تتلعب
     app.unlockedIds = getUnlockedIds();
@@ -1252,6 +1254,7 @@ function persistProgress(){
     matchSolved: game.matchSolved,
     matchSelections: game.matchSelections,
     investigationActionsDone: [...game.investigationActionsDone],
+    backgroundChecks: [...game.backgroundChecks],
   });
 }
 
@@ -2040,6 +2043,44 @@ function suspectsHTML(){
   `;
 }
 
+function suspectBackgroundProfile(s){
+  const custom = s.backgroundCheck || s.criminalRecord || {};
+  const records = Array.isArray(custom.records) ? custom.records : [];
+  return {
+    nationalId: custom.nationalId || 'غير متاح بملف القضية',
+    age: custom.age || s.age || 'غير محدد',
+    address: custom.address || s.address || 'غير متاح بملف القضية',
+    records,
+    notes: custom.notes || '',
+  };
+}
+
+function backgroundCheckHTML(s){
+  const requested = game.backgroundChecks.has(s.id);
+  if(!requested) return `
+    <div class="evidence-card" style="margin:14px 0;cursor:default;">
+      <div class="ev-top"><span class="tag mono">تحريات أمنية</span><span class="mono dim">غير مطلوبة</span></div>
+      <h3 style="margin:8px 0 6px;">صحيفة الحالة الجنائية</h3>
+      <p class="dim" style="margin:0 0 12px;">اطلب مراجعة السجل المتاح للشخص. وجود واقعة سابقة لا يثبت علاقته بالقضية الحالية.</p>
+      <button class="btn ghost" data-background-check="${s.id}">اطلب التحريات</button>
+    </div>`;
+  const p = suspectBackgroundProfile(s);
+  const records = p.records.length
+    ? `<ul style="margin:8px 0 0;padding-right:20px;">${p.records.map(r=>`<li>${typeof r==='string' ? r : `${r.year ? r.year+' — ' : ''}${r.title || r.type || 'واقعة مسجلة'}${r.outcome ? ` — ${r.outcome}` : ''}`}</li>`).join('')}</ul>`
+    : '<p class="dim" style="margin:8px 0 0;">لا توجد وقائع أو إدانات مسجلة ضمن بيانات القضية.</p>';
+  return `
+    <div class="evidence-card found" style="margin:14px 0;cursor:default;">
+      <div class="ev-top"><span class="tag mono">صحيفة الحالة الجنائية</span><span class="mono dim">✓ تم الاستعلام</span></div>
+      <h3 style="margin:8px 0 10px;">${s.name}</h3>
+      <div class="dim" style="display:grid;gap:6px;">
+        <div><strong>السن:</strong> ${p.age}</div><div><strong>العنوان:</strong> ${p.address}</div>
+        <div><strong>الرقم القومي:</strong> ${p.nationalId}</div>
+      </div>
+      ${records}${p.notes ? `<p style="margin:10px 0 0;"><strong>ملاحظات مسجلة:</strong> ${p.notes}</p>` : ''}
+      <p class="dim mono" style="font-size:11px;margin:12px 0 0;">المعلومات معروضة كما هي من غير استنتاج أو توجيه من اللعبة.</p>
+    </div>`;
+}
+
 function interrogationQuestionVisible(s, item, idx){
   const answered = game.interrogated[s.id] || new Set();
   if(answered.has(idx)) return true;
@@ -2116,6 +2157,7 @@ function interrogationHTML(suspectId){
       <div><h2 style="margin-bottom:2px;">${s.name}</h2><span class="dim" style="font-size:14px;">${s.role}</span></div>
     </div>
     <p class="dim">علمة الحضور: ${s.alibi}</p>
+    ${backgroundCheckHTML(s)}
     <div class="divider"></div>
     <div class="transcript" id="transcript">
       ${lines || '<p class="dim" style="margin:0;">اسأل أول سؤال عشان تبدأ الاستجواب.</p>'}
@@ -3308,7 +3350,7 @@ function accusationHTML(){
 
   return `
     <h2>لوحة التحقيق</h2>
-    <p class="dim">اختار الأدلة اللي فعلًا بتبني عليها اتهامك واربطها بمشتبه واحد. كثرة الأدلة مش معناها إنها صحيحة — المهم إن الخيوط تركب على بعض.</p>
+    <p class="dim">اختار الأدلة اللي فعلًا بتبني عليها اتهامك واربطها بمشتبه واحد. التقييم النهائي بيحسب كل الأدلة الحاسمة اللي اكتشفتها أثناء التحقيق، واللوحة بتوضح الشخص اللي بتتهمه.</p>
     <div class="divider"></div>
     <div class="board-wrap" id="boardWrap">
       <svg class="board-svg" id="boardSvg"></svg>
@@ -3354,8 +3396,12 @@ function computeEnding(){
   setTimeout(()=>{
     clearInterval(dotTimer);
     const correctSuspect = game.accSuspect === CASE.correctSuspectId;
-    const conclusiveSet = new Set(CASE.conclusiveEvidenceIds);
-    const hits = [...game.accEvidence].filter(id=>conclusiveSet.has(id)).length;
+    const conclusiveSet = new Set(CASE.conclusiveEvidenceIds || []);
+    // كان التقييم القديم بيحسب الأدلة المربوطة يدويًا على لوحة الاتهام فقط.
+    // ده كان يطلع "حل جزئي" رغم إن اللاعب جمع كل الأدلة الحاسمة، لمجرد إنه
+    // ما ربطش نفس الـ IDs المطلوبة واحدًا واحدًا. التقييم الصحيح يعتمد على
+    // الأدلة المكتشفة فعليًا؛ اللوحة تحدد المتهم ولا تمحو نتيجة التحقيق.
+    const hits = [...game.collected].filter(id=>conclusiveSet.has(id)).length;
     const required = CASE.conclusiveRequired || 2;
     const theory = theoryAccuracy();
     if(correctSuspect && hits>=required && theory.passed) game.ending='good';
@@ -3375,6 +3421,8 @@ function computeEnding(){
       accused_suspect_id: String(game.accSuspect || ''),
       evidence_count: game.collected.size,
       evidence_total: CASE.evidence.length,
+      conclusive_found: hits,
+      conclusive_required: required,
       hints_used: game.hintsUsed,
       score: game.score,
       play_mode: currentPlayMode(),
@@ -3725,6 +3773,18 @@ function attachPanelEvents(){
   });
   const backBtn = document.querySelector('[data-back-suspects]');
   if(backBtn) backBtn.addEventListener('click', ()=>{ game.activeSuspect=null; render(); });
+
+  document.querySelectorAll('[data-background-check]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const suspectId = btn.dataset.backgroundCheck;
+      if(!suspectById(suspectId) || game.backgroundChecks.has(suspectId)) return;
+      game.backgroundChecks.add(suspectId);
+      gaTrack('background_check_requested', { suspect_id:String(suspectId) });
+      persistProgress();
+      showToast('تم استلام نتيجة التحريات الأمنية.', 'amber');
+      render();
+    });
+  });
 
   bindInterrogationQuestionButtons();
 
