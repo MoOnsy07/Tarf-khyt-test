@@ -15,13 +15,9 @@ const CASE_RED_THREAD = {
   difficulty: 'صعبة',
   estMinutes: 38,
   investigationPoints: 22,
-  price: '15 جنيه',
-  oldPrice: '30 جنيه',
-  discountLabel: 'خصم 50%',
   teaser: 'عارضة أزياء بتتلاقي مقتولة في الأتيليه ليلة قبل عرض حاسم لمصممة صاعدة. خيط أحمر من قماش نادر هو الدليل الوحيد اللي ممكن يفضح القاتل.',
 
-  isPremium: true,
-  premiumTier: 'B',
+  isPremium: false,
   categories: ['murder', 'fashion'],
   seriesId: null,
   seriesOrder: null,
@@ -219,21 +215,21 @@ const CASE_RED_THREAD = {
 
   endings: {
     good: {
-      stamp:'CASE CLOSED', badgeLabel:'CASE CLOSED — CONVICTION', title:'خيط واحد كفى لفضح الحقيقة',
+      stamp:'القضية اتقفلت', badgeLabel:'القضية اتقفلت — إدانة', title:'خيط واحد كفى لفضح الحقيقة',
       paragraphs:[
         'كمال كان بيستخدم فلوس تمويل المجموعة في استثمارات شخصية خطيرة من غير علم نور. ياسمين لقت مستندات بالصدفة تكشف الموضوع، وهددته إنها هتفضحه قدام نور والصحافة ليلة العرض نفسها. حاول يقنعها تسكت، الموضوع اتصعّد، وانتهى بمقتلها.',
         'مطابقة الـ DNA على الخيط الأحمر، وشهادة رجل الأمن اللي كذّبت حجة غيابه، وسره المالي اللي حاول يخبيه، كلها أدلة حاصرته وأثبتت وجوده الفعلي في مسرح الجريمة وقت الحادثة.',
       ]
     },
     partial: {
-      stamp:'PARTIAL', badgeLabel:'CASE CLOSED — INSUFFICIENT EVIDENCE', title:'الشك في مكانه، الإثبات ناقص',
+      stamp:'جزئي', badgeLabel:'القضية اتقفلت — أدلة غير كافية', title:'الشك في مكانه، الإثبات ناقص',
       paragraphs:[
         'التحقيق بيتجه صح ناحية كمال، بس الأدلة اللي جمعتها لسه مش كفاية تقفل القضية رسميًا قدام النيابة.',
       ],
       hint:'اجمع على الأقل تلات أدلة من: سره المالي، شهادة رجل الأمن، ومطابقة الـ DNA، قبل ما تتهم.'
     },
     bad: {
-      stamp:'UNSOLVED', badgeLabel:'CASE CLOSED — WRONGFUL ACCUSATION', title:'القضية اتقفلت غلط',
+      stamp:'لغز بلا حل', badgeLabel:'القضية اتقفلت — اتهام ظالم', title:'القضية اتقفلت غلط',
       paragraphs:[
         'اتهمت {wrongName}، وسمعة الأتيليه فضلت ملطخة بتهمة مالهاش أساس، والفاعل الحقيقي فضل طليق. الأدلة كانت بتشاور بوضوح على اتجاه تاني من البداية.',
       ]
@@ -329,7 +325,7 @@ const CASE_RED_THREAD = {
   c.dnaLabPuzzle.resultEvidenceIds = ['kamal_dna_match'];
   c.conclusiveEvidenceIds = ['kamal_secret','kamal_backdoor_seen','kamal_dna_match'];
   const k=c.suspects.find(s=>s.id==='investor_kamal'); if(k){const q=k.questions.find(q=>q.closesInterrogation); if(q) q.requires=['kamal_secret','kamal_backdoor_seen','kamal_dna_match'];}
-  c.endings.partial.hint = 'اجمع على الأقل تلات أدلة من: السر المالي، دخول كمال من الباب الخلفي، ومطابقة الـDNA على الخيط، قبل ما تتهم.';
+  c.endings.partial.hint = 'اجمع على الأقل 3 أدلة من: السر المالي، دخول كمال من الباب الخلفي، ومطابقة الـDNA على الخيط، قبل ما تتهم.';
 
 })();
 

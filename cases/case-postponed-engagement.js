@@ -218,21 +218,21 @@ const CASE_POSTPONED_ENGAGEMENT = {
 
   endings: {
     good: {
-      stamp:'CASE CLOSED', badgeLabel:'CASE CLOSED — RESCUE', title:'الخطوبة اللي كشفت الدين',
+      stamp:'القضية اتقفلت', badgeLabel:'القضية اتقفلت — إنقاذ', title:'الخطوبة اللي كشفت الدين',
       paragraphs:[
         'معتز كان مديون لحسن بمبلغ كبير من مشروع تجاري فشل، وكان لازم يسدد قبل الخطوبة. حسن شك إن معتز هيتهرب من الدين بعد ما يتجوز، فقرر يقابله شخصيًا آخر لحظة قدام العمارة عشان يضمن حقه. النقاش اتصعّد، وأخده حسن معاه لحد ما يدبر الفلوس المطلوبة.',
         'التناقض الواضح في جدول مواقعه اللي أثبت وجوده الفعلي قريب من العمارة رغم إنكاره، ومكالمة الضغط اللي بعتها لمعتز في نفس يوم الاحتفال، واعتراف تامر بنية معتز للقاء حد مهم قبل الحفل، كلها أدلة حاصرت حسن وأدت لإنقاذ معتز في اللحظة المناسبة.',
       ]
     },
     partial: {
-      stamp:'PARTIAL', badgeLabel:'CASE CLOSED — INSUFFICIENT EVIDENCE', title:'الشك في مكانه، الإثبات ناقص',
+      stamp:'جزئي', badgeLabel:'القضية اتقفلت — أدلة غير كافية', title:'الشك في مكانه، الإثبات ناقص',
       paragraphs:[
         'التحقيق بيتجه صح ناحية حسن، بس الأدلة اللي جمعتها لسه مش كفاية تقفل القضية رسميًا قدام النيابة.',
       ],
       hint:'اجمع على الأقل تلات أدلة من: تناقض جدول مواقعه، مكالمة الضغط، ونية معتز للقاء حد مهم، قبل ما تتهم.'
     },
     bad: {
-      stamp:'UNSOLVED', badgeLabel:'CASE CLOSED — WRONGFUL ACCUSATION', title:'القضية اتقفلت غلط',
+      stamp:'لغز بلا حل', badgeLabel:'القضية اتقفلت — اتهام ظالم', title:'القضية اتقفلت غلط',
       paragraphs:[
         'اتهمت {wrongName}، ومعتز فضل في خطر حقيقي والفاعل الحقيقي فضل طليق. الأدلة كانت بتشاور بوضوح على اتجاه تاني من البداية.',
       ]
@@ -322,7 +322,7 @@ const CASE_POSTPONED_ENGAGEMENT = {
   c.alibiGridPuzzle.resultEvidenceIds = ['hassan_p_alibi_broken'];
   c.conclusiveEvidenceIds = ['hassan_p_pressure_call','tamer_p_confession','hassan_p_alibi_broken'];
   const h=c.suspects.find(s=>s.id==='debt_collector_hassan_p'); if(h){const q=h.questions.find(q=>q.closesInterrogation); if(q) q.requires=['hassan_p_pressure_call','tamer_p_confession','hassan_p_alibi_broken'];}
-  c.endings.partial.hint = 'اجمع على الأقل تلات أدلة من: مكالمة الضغط، كلام تامر عن المقابلة المهمة، وكسر حجة مكان حسن، قبل ما تتهم.';
+  c.endings.partial.hint = 'اجمع على الأقل 3 أدلة من: مكالمة الضغط، كلام تامر عن المقابلة المهمة، وكسر حجة مكان حسن، قبل ما تتهم.';
 
 })();
 
