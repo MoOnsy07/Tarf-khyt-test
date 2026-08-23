@@ -98,7 +98,7 @@ const CASE_POSTPONED_ENGAGEMENT = {
           a:'"مديون ليّ بمبلغ كبير من مشروع فشل، كان لازم يسدد قبل الخطوبة."' },
         { q:'كنت متصل بيه في يوم الاحتفال؟', requires:['hassan_p_debt'],
           a:'(بيتردد) "اتصلت بيه أذكره بالموعد النهائي للسداد، كان متوتر جدًا في المكالمة."' },
-        { q:'البواب شافك، والكاميرا صورت عربيتك وهي خارجة بمعتز — عايز تفسر؟', requires:['hassan_p_location_witness','hassan_p_vehicle_camera'], closesInterrogation:true,
+        { q:'الكاميرا صورت عربيتك، ومعتز اتلاقى في المخزن المرتبط بيك — عايز تفسر؟', requires:['hassan_p_vehicle_camera','moutaz_rescued_verified_v2'], closesInterrogation:true,
           a:'(بيصمت طويل) "قابلته عشان حقي. ركب معايا نتكلم، ولما رفض يدبر الفلوس منعته يمشي وخدته للمخزن القديم. ماكنتش ناوي أأذيه."' },
       ]
     },
@@ -160,10 +160,25 @@ const CASE_POSTPONED_ENGAGEMENT = {
       full:'كاميرا العمارة المقابلة سجلت رقم عربية حسن ومعتز بيركب بجواره. العربية تحركت فورًا ناحية الطريق الزراعي.',
       unlocked:false, order:11 },
 
-    { id:'moutaz_found', tag:'نتيجة التتبع والمداهمة', crit:true, title:'العثور على معتز', img:null,
-      short:'تم العثور على معتز محتجزًا في مخزن قديم يخص حسن',
-      full:'تتبع رقم العربية قاد لمخزن قديم يستعمله حسن. عُثر على معتز بالداخل حيًا، وأكد إن حسن منعه من المغادرة بعد خلاف الدين.',
+    { id:'vehicle_last_camera', tag:'كاميرات الطريق', crit:true, title:'آخر ظهور للعربية', img:null,
+      short:'العربية اختفت من الكاميرات عند مدخل المنطقة الصناعية',
+      full:'تتبع كاميرات الطريق وضع عربية حسن عند مدخل المنطقة الصناعية، لكن المنطقة فيها عدة مخازن ومفيش تصوير داخلي يحدد أي واحد منها.',
       unlocked:false, order:12 },
+
+    { id:'hassan_warehouse_registry', tag:'سجل الملكية والتأجير', crit:true, title:'مخزن مرتبط بحسن', img:null,
+      short:'سجل الإيجارات كشف مخزنًا قديمًا باسم شريك سابق لحسن',
+      full:'مراجعة عقود المخازن داخل المنطقة كشفت إن حسن كان ضامنًا لعقد مخزن قديم مسجل باسم شريك سابق. المعلومة تحدد مشتبهًا في المكان، لكنها لا تثبت وجود معتز داخله.',
+      unlocked:false, order:13 },
+
+    { id:'warehouse_live_signal', tag:'تحريات فنية', crit:true, title:'إشارة هاتف داخل المخزن', img:null,
+      short:'آخر اتصال لموبايل معتز بالشبكة خرج من محيط المخزن',
+      full:'طلب تحديد النطاق الفني أظهر إن موبايل معتز اتصل بالشبكة لثوانٍ من محيط المخزن المرتبط بحسن. دي أول قرينة مباشرة تسمح بطلب إذن المداهمة.',
+      unlocked:false, order:14 },
+
+    { id:'moutaz_rescued_verified_v2', tag:'نتيجة المداهمة', crit:true, title:'العثور على معتز وإنقاذه', img:null,
+      short:'المداهمة عثرت على معتز محتجزًا داخل المخزن',
+      full:'بعد اكتمال قرائن السيارة والملكية وإشارة الهاتف، تمت مداهمة المخزن. عُثر على معتز حيًا، وأكد إن حسن منعه من المغادرة بعد خلاف الدين.',
+      unlocked:false, order:15 },
   ],
 
   investigationActions: [
@@ -187,11 +202,32 @@ const CASE_POSTPONED_ENGAGEMENT = {
       successText:'الكاميرا أثبتت إن معتز ركب عربية حسن وسجلت رقمها واتجاهها.'
     },
     {
-      id:'engagement_track_vehicle', kind:'تتبع ومداهمة', label:'تتبّع العربية وداهم الموقع',
-      description:'استخدم رقم العربية واتجاهها للوصول للمكان المحتمل.',
+      id:'engagement_track_vehicle_route_v2', kind:'تتبع كاميرات', label:'تتبّع خط سير العربية',
+      description:'راجع كاميرات الطريق وحدد آخر نقطة ظهرت فيها العربية. الخطوة دي لا تحدد مكان معتز وحدها.',
       requires:['hassan_p_vehicle_camera'],
-      resultEvidenceIds:['moutaz_found'],
-      successText:'تم الوصول للمخزن والعثور على معتز حيًا.'
+      resultEvidenceIds:['vehicle_last_camera'],
+      successText:'العربية اختفت من التغطية عند مدخل المنطقة الصناعية.'
+    },
+    {
+      id:'engagement_check_warehouse_registry_v2', kind:'تحريات ملكية', label:'راجع سجلات مخازن المنطقة',
+      description:'ضيّق نطاق البحث من عشرات المخازن إلى الأماكن المرتبطة بحسن أو شركائه.',
+      requires:['vehicle_last_camera','hassan_p_debt'],
+      resultEvidenceIds:['hassan_warehouse_registry'],
+      successText:'ظهر مخزن قديم مرتبط بعقد كان حسن ضامنًا له.'
+    },
+    {
+      id:'engagement_trace_phone_signal_v2', kind:'تتبع فني', label:'اطلب نطاق آخر إشارة لهاتف معتز',
+      description:'قارن آخر اتصال للشبكة بموقع المخزن قبل طلب إذن المداهمة.',
+      requires:['hassan_warehouse_registry','hassan_p_pressure_call'],
+      resultEvidenceIds:['warehouse_live_signal'],
+      successText:'آخر إشارة للهاتف خرجت من محيط المخزن المرتبط بحسن.'
+    },
+    {
+      id:'engagement_raid_verified_warehouse_v2', kind:'مداهمة', label:'استصدر إذنًا وداهم المخزن',
+      description:'المداهمة لا تتاح إلا بعد اكتمال مسار السيارة، رابط الملكية، وإشارة الهاتف.',
+      requires:['vehicle_last_camera','hassan_warehouse_registry','warehouse_live_signal'],
+      resultEvidenceIds:['moutaz_rescued_verified_v2'],
+      successText:'تم العثور على معتز وإنقاذه بعد اكتمال سلسلة التتبع.'
     },
   ],
 
@@ -229,7 +265,7 @@ const CASE_POSTPONED_ENGAGEMENT = {
   evidenceCombinations: [],
 
   correctSuspectId: 'debt_collector_hassan_p',
-  conclusiveEvidenceIds: ['hassan_p_location_witness', 'hassan_p_vehicle_camera', 'moutaz_found'],
+  conclusiveEvidenceIds: ['hassan_p_vehicle_camera', 'warehouse_live_signal', 'moutaz_rescued_verified_v2'],
   conclusiveRequired: 3,
 
   theoryBuilder: {
@@ -345,4 +381,3 @@ const CASE_POSTPONED_ENGAGEMENT = {
    with a highlighted entry, soft phone glow lighting, no text, no
    watermark, photorealistic"
    ============================================================ */
-
