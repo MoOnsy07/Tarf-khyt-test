@@ -2055,6 +2055,11 @@ function stableProfileNumber(value){
 
 function inferredNeutralOccupation(s){
   const role=String(s.role||'').toLowerCase();
+  const seed=stableProfileNumber(`${CASE && CASE.id}|${s.id}|occupation`);
+  const pick=(items)=>items[seed%items.length];
+  const forceNeutral=/بيدّعي|يدّعي|يدعي|مدّعي/.test(role);
+  if(/صاحب الشقة|مالك الشقة|مؤجر/.test(role)) return 'يعمل في إدارة وتأجير العقارات';
+  if(/تحف|أنتيكات|آثار قديمة/.test(role)) return 'تاجر مقتنيات وتحف';
   const rules=[
     [/طالب|طالبة|تلميذ|تلميذة/, 'طالب/ـة'],
     [/مدرس|مدرّس|معلم|معلمة|أستاذ/, 'يعمل في مجال التعليم'],
@@ -2077,8 +2082,34 @@ function inferredNeutralOccupation(s){
     [/مصمم|أزياء|عارض|عارضة|أتيليه/, 'يعمل في مجال الأزياء'],
     [/طبيب|عيادة/, 'يعمل في المجال الطبي'],
   ];
-  const match=rules.find(([re])=>re.test(role));
-  return match ? match[1] : 'المهنة غير مثبتة في الملف الإداري';
+  const match=forceNeutral ? null : rules.find(([re])=>re.test(role));
+  if(match) return match[1];
+
+  // لو دور الشخصية اجتماعي فقط (قريب/صديق/جار...) نديها مهنة ثابتة
+  // ومناسبة لبيئة القضية، بدل مهنة تتغير مع كل Refresh أو تلميح يكشف الحل.
+  if(/طفل|طفلة|تلميذ|تلميذة/.test(role)) return 'طالب/ـة بالمرحلة الأساسية';
+  if(/مراهق|مراهقة|طالب ثانوي/.test(role)) return 'طالب/ـة بالمرحلة الثانوية';
+  if(/جدة|جد |الحاجة|الجد|مسن|مسنة/.test(role)){
+    return pick(['بالمعاش — موظف/ـة إداري سابقًا','بالمعاش — عمل حر سابقًا','ربة منزل']);
+  }
+
+  const categories=Array.isArray(CASE && CASE.categories)
+    ? CASE.categories.map(c=>String(c).toLowerCase()) : [];
+  const contextualPools=[
+    {keys:['sports'], jobs:['موظف إداري بنادٍ رياضي','مندوب مبيعات أدوات رياضية','مدرب لياقة بدنية','محاسب']},
+    {keys:['food'], jobs:['موظف مشتريات','مشرف صالة','مورد أغذية','محاسب']},
+    {keys:['fashion'], jobs:['موظف مبيعات ملابس','منسق مخزون','مصمم جرافيك','محاسب']},
+    {keys:['digital'], jobs:['موظف دعم فني','مصمم جرافيك','مسؤول خدمة عملاء','محاسب']},
+    {keys:['nightlife'], jobs:['موظف حجوزات','مسؤول خدمة عملاء','مندوب مبيعات','محاسب']},
+    {keys:['corruption','fraud','forgery'], jobs:['موظف إداري','مندوب مبيعات','محاسب','صاحب مشروع صغير']},
+    {keys:['family','social','disappearance'], jobs:['موظف إداري','مدرس/ـة','مندوب مبيعات','صاحب محل','محاسب','موظف خدمة عملاء']},
+  ];
+  const contextual=contextualPools.find(pool=>pool.keys.some(key=>categories.includes(key)));
+  const generalJobs=[
+    'موظف إداري','محاسب','مندوب مبيعات','موظف خدمة عملاء',
+    'صاحب محل','مدرس/ـة','مصمم جرافيك','موظف مشتريات',
+  ];
+  return pick(contextual ? contextual.jobs : generalJobs);
 }
 
 function inferredNeutralAge(s){
@@ -2089,7 +2120,8 @@ function inferredNeutralAge(s){
   if(/مراهق|مراهقة|طالب ثانوي|تلميذ/.test(role)) return between(16,19);
   if(/طالب|طالبة/.test(role)) return between(19,24);
   if(/جدة|جد |الحاجة|الجد|مسن|مسنة/.test(role)) return between(62,74);
-  if(/والد|والدة|أب |أم |عم |عمة|خال|خالة/.test(role)) return between(48,63);
+  // صلة القرابة المركبة مثل «ابنة عم» لا تعني أن الشخصية من جيل الوالدين.
+  if(/^(والد|والدة|أب|أم|عم|عمة|خال|خالة)(\s|$)/.test(role)) return between(48,63);
   if(/مدير|صاحب|مالك|طبيب|دكتور|محامي|أستاذ|مدرس|مدرب/.test(role)) return between(36,53);
   if(/شاب|شابة|صديق|صديقة|خطيب|خطيبة|عريس|عروسة|زميل|زميلة/.test(role)) return between(24,36);
   return between(27,49);
