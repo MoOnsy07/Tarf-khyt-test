@@ -2043,15 +2043,83 @@ function suspectsHTML(){
   `;
 }
 
+function stableProfileNumber(value){
+  let h=2166136261;
+  const text=String(value||'');
+  for(let i=0;i<text.length;i++){
+    h^=text.charCodeAt(i);
+    h=Math.imul(h,16777619);
+  }
+  return h>>>0;
+}
+
+function inferredNeutralOccupation(s){
+  const role=String(s.role||'').toLowerCase();
+  const rules=[
+    [/طالب|طالبة|تلميذ|تلميذة/, 'طالب/ـة'],
+    [/مدرس|مدرّس|معلم|معلمة|أستاذ/, 'يعمل في مجال التعليم'],
+    [/دكتور|طبيب|جراح|تجميل|ممرض|ممرضة|صيدل/, 'يعمل في المجال الطبي'],
+    [/محامي|قانون|نيابة/, 'يعمل في المجال القانوني'],
+    [/مهندس|مبرمج|مطور|تقني|تكنولوجيا|it\b/, 'يعمل في المجال التقني'],
+    [/محاسب|بنك|مصرف|مالي|خزنة/, 'يعمل في المجال المالي والإداري'],
+    [/صحفي|إعلام|مذيع|برنامج|محرر/, 'يعمل في مجال الإعلام'],
+    [/مصور|مونتاج|فيديو|كاميرا/, 'يعمل في الإنتاج البصري'],
+    [/ممثل|ممثلة|مخرج|مسرح|سيناريو|كاتب/, 'يعمل في المجال الفني'],
+    [/شيف|طباخ|مطبخ/, 'يعمل في مجال الطهي'],
+    [/نادل|جرسون|مقهى|قهوة/, 'يعمل في الضيافة والخدمات'],
+    [/سواق|سائق|توك توك|تاكسي|نقل/, 'يعمل في مجال النقل'],
+    [/حارس|بواب|أمن/, 'يعمل في الأمن والخدمات'],
+    [/تاجر|سمسار|مورد|مقاول|رجل أعمال|صاحب شركة|مستثمر/, 'يعمل في التجارة والأعمال'],
+    [/مدير|إدارة|سكرتير|موظف|إداري/, 'يعمل في الإدارة'],
+    [/عامل|فني|نجار|ورشة|مخزن/, 'عامل/فني'],
+    [/فلاح|مزارع|مواشي|أرض/, 'يعمل في الزراعة أو تربية المواشي'],
+    [/لاعب|مدرب|حكم|رياضي|نادي/, 'يعمل في المجال الرياضي'],
+    [/مصمم|أزياء|عارض|عارضة|أتيليه/, 'يعمل في مجال الأزياء'],
+    [/طبيب|عيادة/, 'يعمل في المجال الطبي'],
+  ];
+  const match=rules.find(([re])=>re.test(role));
+  return match ? match[1] : 'المهنة غير مثبتة في الملف الإداري';
+}
+
+function inferredNeutralAge(s){
+  const role=String(s.role||'').toLowerCase();
+  const seed=stableProfileNumber(`${CASE && CASE.id}|${s.id}|age`);
+  const between=(min,max)=>min+(seed%(max-min+1));
+  if(/طفل|طفلة/.test(role)) return between(8,14);
+  if(/مراهق|مراهقة|طالب ثانوي|تلميذ/.test(role)) return between(16,19);
+  if(/طالب|طالبة/.test(role)) return between(19,24);
+  if(/جدة|جد |الحاجة|الجد|مسن|مسنة/.test(role)) return between(62,74);
+  if(/والد|والدة|أب |أم |عم |عمة|خال|خالة/.test(role)) return between(48,63);
+  if(/مدير|صاحب|مالك|طبيب|دكتور|محامي|أستاذ|مدرس|مدرب/.test(role)) return between(36,53);
+  if(/شاب|شابة|صديق|صديقة|خطيب|خطيبة|عريس|عروسة|زميل|زميلة/.test(role)) return between(24,36);
+  return between(27,49);
+}
+
+function inferredNeutralAddress(s){
+  const custom=s.backgroundCheck || s.criminalRecord || {};
+  if(custom.address || s.address) return custom.address || s.address;
+  const location=caseLocationText(CASE) || 'نطاق الواقعة';
+  const role=String(s.role||'');
+  if(/غريب|من خارج|وافد/.test(role)) return `عنوان مسجل خارج ${location} — التفاصيل محجوبة`;
+  return `مقيم في نطاق ${location}`;
+}
+
 function suspectBackgroundProfile(s){
   const custom = s.backgroundCheck || s.criminalRecord || {};
-  const records = Array.isArray(custom.records) ? custom.records : [];
+  // تحريات إدارية محايدة: أي سجل مرتبط بالقضية الحالية لا يظهر هنا،
+  // لأن مكانه ملف الأدلة وليس صحيفة الهوية.
+  const records = (Array.isArray(custom.records) ? custom.records : [])
+    .filter(r=>!(r && typeof r==='object' && r.relatedToCase===true));
+  const caseNo = String(CASE && (CASE.caseNo || CASE.id) || 'CASE').replace(/[^A-Za-z0-9]+/g,'-');
+  const suspectNo = Math.max(1, (CASE.suspects || []).findIndex(x=>x.id===s.id) + 1);
   return {
-    nationalId: custom.nationalId || 'غير متاح بملف القضية',
-    age: custom.age || s.age || 'غير محدد',
-    address: custom.address || s.address || 'غير متاح بملف القضية',
+    fileNo: custom.fileNo || `${caseNo}-BG-${String(suspectNo).padStart(2,'0')}`,
+    age: custom.age || s.age || inferredNeutralAge(s),
+    address: inferredNeutralAddress(s),
+    occupation: custom.occupation || inferredNeutralOccupation(s),
+    searchArea: custom.searchArea || caseLocationText(CASE) || 'نطاق الواقعة',
     records,
-    notes: custom.notes || '',
+    notes: custom.administrativeNotes || '',
   };
 }
 
@@ -2060,8 +2128,8 @@ function backgroundCheckHTML(s){
   if(!requested) return `
     <div class="evidence-card" style="margin:14px 0;cursor:default;">
       <div class="ev-top"><span class="tag mono">تحريات أمنية</span><span class="mono dim">غير مطلوبة</span></div>
-      <h3 style="margin:8px 0 6px;">صحيفة الحالة الجنائية</h3>
-      <p class="dim" style="margin:0 0 12px;">اطلب مراجعة السجل المتاح للشخص. وجود واقعة سابقة لا يثبت علاقته بالقضية الحالية.</p>
+      <h3 style="margin:8px 0 6px;">تحريات الهوية والسجل</h3>
+      <p class="dim" style="margin:0 0 12px;">استعلام إداري محايد عن بيانات الشخص وسجله العام. لا يكشف علاقته بالجريمة ولا يفتح دليلًا.</p>
       <button class="btn ghost" data-background-check="${s.id}">اطلب التحريات</button>
     </div>`;
   const p = suspectBackgroundProfile(s);
@@ -2070,14 +2138,18 @@ function backgroundCheckHTML(s){
     : '<p class="dim" style="margin:8px 0 0;">لا توجد وقائع أو إدانات مسجلة ضمن بيانات القضية.</p>';
   return `
     <div class="evidence-card found" style="margin:14px 0;cursor:default;">
-      <div class="ev-top"><span class="tag mono">صحيفة الحالة الجنائية</span><span class="mono dim">✓ تم الاستعلام</span></div>
+      <div class="ev-top"><span class="tag mono">تحريات إدارية</span><span class="mono dim">✓ تم الاستعلام</span></div>
       <h3 style="margin:8px 0 10px;">${s.name}</h3>
       <div class="dim" style="display:grid;gap:6px;">
-        <div><strong>السن:</strong> ${p.age}</div><div><strong>العنوان:</strong> ${p.address}</div>
-        <div><strong>الرقم القومي:</strong> ${p.nationalId}</div>
+        <div><strong>رقم ملف التحريات:</strong> ${p.fileNo}</div>
+        <div><strong>المهنة/الصفة:</strong> ${p.occupation}</div>
+        <div><strong>السن:</strong> ${p.age}</div>
+        <div><strong>العنوان المسجل:</strong> ${p.address}</div>
+        <div><strong>نطاق الاستعلام:</strong> ${p.searchArea}</div>
       </div>
-      ${records}${p.notes ? `<p style="margin:10px 0 0;"><strong>ملاحظات مسجلة:</strong> ${p.notes}</p>` : ''}
-      <p class="dim mono" style="font-size:11px;margin:12px 0 0;">المعلومات معروضة كما هي من غير استنتاج أو توجيه من اللعبة.</p>
+      <div style="margin-top:10px;"><strong>السجل العام:</strong>${records}</div>
+      ${p.notes ? `<p style="margin:10px 0 0;"><strong>ملاحظات إدارية:</strong> ${p.notes}</p>` : ''}
+      <p class="dim mono" style="font-size:11px;margin:12px 0 0;">الصحيفة لا تضيف نقاطًا، لا تفتح أدلة، ولا ترجّح أي شخص. الاستنتاج من أدلة القضية فقط.</p>
     </div>`;
 }
 
