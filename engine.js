@@ -290,6 +290,7 @@ function freshGameState(){
     flags: new Set(),            // مجموعة flags نصية اتجمعت من قرارات اللاعب في نقاط القرار
     decisionsShown: new Set(),   // IDs نقاط القرار اللي اتعرضت بالفعل، عشان ما تتكررش
     epilogue: null,               // مقطع الخاتمة المتفرعة المختار (لو القضية بتدعم النظام ده)
+    currentScene: (CASE && CASE.storyMode) ? CASE.startScene : null,
   };
 }
 
@@ -1214,6 +1215,7 @@ function enterCase(caseData, opts={}){
     game.flags = new Set(saved.flags || []);
     game.decisionsShown = new Set(saved.decisionsShown || []);
     game.epilogue = saved.epilogue || null;
+    game.currentScene = saved.currentScene || (CASE.storyMode ? CASE.startScene : null);
   } else {
     addUnlockedId(CASE.id); // قضية مجانية، تتسجل كمفتوحة أول ما تتلعب
     app.unlockedIds = getUnlockedIds();
@@ -1239,6 +1241,7 @@ function enterCase(caseData, opts={}){
   // التحقيق على طول من غير ما تعيد شاشة الانترو والمقدمة تاني من الأول
   if(saved){
     app.view = 'case';
+    if(CASE.storyMode && CASE.scenes){ startStoryMode(); return; }
     mountGameShell();
     return;
   }
@@ -1318,6 +1321,7 @@ function persistProgress(){
     flags: [...game.flags],
     decisionsShown: [...game.decisionsShown],
     epilogue: game.epilogue || null,
+    currentScene: game.currentScene || null,
   });
 }
 
@@ -1368,6 +1372,7 @@ function typeTextSkippable(el, text, speed, onDone){
 }
 
 function startPrologue(){
+  if(CASE.storyMode && CASE.scenes){ startStoryMode(); return; }
   if(!CASE.prologue || !CASE.prologue.length){ mountGameShell(); return; }
   startAmbience(CASE.introAmbience || DEFAULT_INTRO_AMBIENCE);
   document.body.insertAdjacentHTML('beforeend', `
@@ -1455,6 +1460,130 @@ function endPrologue(reason='complete'){
     p.remove();
     maybeShowDecisionPoint('afterPrologue', mountGameShell);
   }, 500);
+}
+
+/* ============================================================
+   STORY MODE — قضايا مبنية بالكامل كغرافة مشاهد (CASE.scenes)
+   بديل كامل لـ mountGameShell/الاستجواب/الأدلة. كل مشهد بيعرض
+   صورة + نص + أزرار قرار، وكل قرار بيوديك لمشهد مختلف فعليًا.
+   ده نظام مستقل تمامًا، بيستخدم نفس الـ DOM/ستايل بتاع الـ prologue
+   الحالي عشان يبان متسق بصريًا مع باقي اللعبة.
+   ============================================================ */
+function startStoryMode(){
+  startAmbience(CASE.introAmbience || DEFAULT_INTRO_AMBIENCE);
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="storyMode" class="prologue" style="display:flex;">
+      <div class="prologue-bg" id="storyBg"></div>
+      <button id="storyBackBtn" class="prologue-back-btn mono">← الأرشيف</button>
+      <button id="storySfxToggle" class="prologue-sfx-btn mono" aria-label="كتم/تشغيل الصوت">${sfxEnabled() ? '🔊' : '🔇'}</button>
+      <div class="prologue-content" id="storyContent">
+        <div class="prologue-scene mono" id="storyLabel"></div>
+        <p class="prologue-text" id="storyText"></p>
+        <div class="q-grid" id="storyChoices" style="margin-top:14px;"></div>
+      </div>
+    </div>
+  `);
+  document.getElementById('storySfxToggle').addEventListener('click', e=>{
+    e.stopPropagation();
+    setSfxEnabled(!sfxEnabled());
+    e.target.textContent = sfxEnabled() ? '🔊' : '🔇';
+    if(sfxEnabled()) startAmbience(CASE.introAmbience || DEFAULT_INTRO_AMBIENCE);
+  });
+  document.getElementById('storyBackBtn').addEventListener('click', e=>{
+    e.stopPropagation();
+    document.getElementById('storyMode').remove();
+    returnToLibraryFromCase();
+  });
+  showStoryScene(game.currentScene || CASE.startScene);
+}
+
+function showStoryScene(sceneId){
+  const s = CASE.scenes[sceneId];
+  if(!s){ console.warn('Unknown story scene:', sceneId, CASE.id); return; }
+  game.currentScene = sceneId;
+  persistProgress();
+  gaTrack('story_scene_shown', { scene_id: String(sceneId||''), ending: s.isEnding ? (s.endingType||'') : '' });
+
+  if(s.isEnding){ showStoryEnding(s); return; }
+
+  const bg = document.getElementById('storyBg');
+  const content = document.getElementById('storyContent');
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function applyScene(){
+    bg.style.backgroundImage = s.img ? `url('${s.img}')` : 'none';
+    document.getElementById('storyLabel').textContent = s.label || '';
+    const choicesEl = document.getElementById('storyChoices');
+    choicesEl.innerHTML = '';
+    choicesEl.style.opacity = '0';
+    const textEl = document.getElementById('storyText');
+    typeTextSkippable(textEl, s.text, 22, ()=>{
+      choicesEl.innerHTML = (s.choices||[]).map((ch,idx)=>
+        `<button class="btn ${idx===0?'':'ghost'}" data-story-choice="${idx}" style="width:100%; margin-bottom:8px; text-align:right;">${ch.label}</button>`
+      ).join('');
+      choicesEl.style.opacity = '1';
+      choicesEl.querySelectorAll('[data-story-choice]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const choice = s.choices[Number(btn.dataset.storyChoice)];
+          if(!choice) return;
+          if(choice.flag) game.flags.add(choice.flag);
+          gaTrack('story_choice_made', { scene_id: String(sceneId||''), choice_label: String(choice.label||''), flag: String(choice.flag||'') });
+          persistProgress();
+          showStoryScene(choice.next);
+        });
+      });
+    });
+  }
+
+  if(reduced){ applyScene(); return; }
+  bg.classList.add('fading');
+  content.classList.add('fading');
+  setTimeout(()=>{
+    applyScene();
+    requestAnimationFrame(()=>{
+      bg.classList.remove('fading');
+      content.classList.remove('fading');
+    });
+  }, 420);
+}
+
+function showStoryEnding(s){
+  game.ending = s.endingType;
+  persistProgress();
+  gaTrack('case_complete', {
+    ending: s.endingType,
+    story_mode: 'yes',
+    flags: [...game.flags].join(','),
+  });
+  const content = document.getElementById('storyContent');
+  const bg = document.getElementById('storyBg');
+  content.classList.add('fading');
+  bg.classList.add('fading');
+  setTimeout(()=>{
+    bg.style.backgroundImage = s.img ? `url('${s.img}')` : 'none';
+    content.innerHTML = `
+      <div class="stamp ${s.endingType} mono">${s.stamp || ''}</div>
+      <div class="ending-title ${s.endingType}">${s.title}</div>
+      ${(s.paragraphs||[]).map(p=>`<p class="prologue-text" style="animation:none;">${p}</p>`).join('')}
+      <div class="q-grid" style="margin-top:16px;">
+        <button class="btn" id="storyRestart" style="width:100%; margin-bottom:8px;">ابدأ القضية دي من الأول</button>
+        <button class="btn ghost" id="storyBackToLib" style="width:100%;">رجوع للأرشيف</button>
+      </div>
+    `;
+    requestAnimationFrame(()=>{ content.classList.remove('fading'); bg.classList.remove('fading'); });
+    document.getElementById('storyRestart').addEventListener('click', ()=>{
+      game.currentScene = CASE.startScene;
+      game.flags = new Set();
+      game.ending = null;
+      persistProgress();
+      document.getElementById('storyMode').remove();
+      startStoryMode();
+    });
+    document.getElementById('storyBackToLib').addEventListener('click', ()=>{
+      document.getElementById('storyMode').remove();
+      returnToLibraryFromCase();
+    });
+  }, 420);
 }
 
 /* ============================================================
