@@ -1579,6 +1579,7 @@ function showStoryScene(sceneId){
 
 function showStoryEnding(s){
   game.ending = s.endingType;
+  game.screen = 'ending';
   persistProgress();
   gaTrack('case_complete', {
     ending: s.endingType,
@@ -1591,10 +1592,18 @@ function showStoryEnding(s){
   bg.classList.add('fading');
   setTimeout(()=>{
     bg.style.backgroundImage = s.img ? `url('${s.img}')` : 'none';
+    const storyModeEl = document.getElementById('storyMode');
+    if(storyModeEl){
+      storyModeEl.style.overflowY = 'auto';
+      storyModeEl.style.alignItems = 'flex-start';
+    }
+    content.style.padding = '60px 26px 40px';
     content.innerHTML = `
       <div class="stamp ${s.endingType} mono">${s.stamp || ''}</div>
       <div class="ending-title ${s.endingType}">${s.title}</div>
       ${(s.paragraphs||[]).map(p=>`<p class="prologue-text" style="animation:none;">${p}</p>`).join('')}
+      ${reviewBoxHTML()}
+      ${socialLinksHTML('ending')}
       <div class="q-grid" style="margin-top:16px;">
         <button class="btn" id="storyRestart" style="width:100%; margin-bottom:8px;">ابدأ القضية دي من الأول</button>
         <button class="btn ghost" id="storyBackToLib" style="width:100%;">رجوع للأرشيف</button>
@@ -1613,6 +1622,38 @@ function showStoryEnding(s){
       document.getElementById('storyMode').remove();
       returnToLibraryFromCase();
     });
+
+    // ---- تقييم القضية (نجوم) — نفس منطق شاشة النهاية العادية بالظبط ----
+    const starsBox = document.getElementById('reviewStars');
+    if(starsBox){
+      starsBox.querySelectorAll('.star-btn').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const n = parseInt(btn.dataset.star, 10);
+          starsBox.dataset.rating = String(n);
+          starsBox.querySelectorAll('.star-btn').forEach(b=>{
+            const bn = parseInt(b.dataset.star, 10);
+            b.textContent = bn<=n ? '★' : '☆';
+            b.classList.toggle('active', bn<=n);
+          });
+          const submitBtn = document.getElementById('submitReviewBtn');
+          if(submitBtn) submitBtn.disabled = false;
+        });
+      });
+    }
+    const submitReviewBtn = document.getElementById('submitReviewBtn');
+    if(submitReviewBtn) submitReviewBtn.addEventListener('click', ()=>{
+      const box = document.getElementById('reviewStars');
+      const rating = parseInt(box && box.dataset.rating || '0', 10);
+      if(!rating) return;
+      const commentEl = document.getElementById('reviewComment');
+      const comment = commentEl ? commentEl.value.trim().slice(0,240) : '';
+      submitReviewBtn.disabled = true;
+      submitReviewBtn.textContent = 'جارِ الإرسال...';
+      submitCaseReview(rating, comment);
+    });
+    if(document.getElementById('reviewAverageBox')) renderCaseReviewStats();
+
+    setTimeout(showTelegramInvite, 1100);
   }, 420);
 }
 
