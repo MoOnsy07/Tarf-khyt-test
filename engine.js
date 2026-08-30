@@ -20,6 +20,7 @@ const LIBRARY_PAGE_SIZE = 18; // عدد الكروت المضافة في كل ض
 // WHATSAPP_NUMBER معرّفة أصلاً في config.js (بيتحمّل قبل engine.js) — هنا بس بنبني رابط منها
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
 const TELEGRAM_CHANNEL_URL = 'https://t.me/taraf5eet';
+const INSTAGRAM_URL = 'https://www.instagram.com/tarafkheet?igsh=MWQ3Y2h2aHB0eDduYw==';
 
 // كارت التواصل — واتساب للدعم والاقتراحات، وتليجرام للقضايا والتحديثات
 function socialLinksHTML(context){
@@ -94,6 +95,7 @@ function showTelegramInvite(){
       <h3 id="telegramInviteTitle">متفوّتش القضية الجاية</h3>
       <p>إعلانات القضايا الجديدة، تحديثات اللعبة ونتائج المتصدرين هتلاقيها على قناة طرف الخيط.</p>
       <a href="${TELEGRAM_CHANNEL_URL}" target="_blank" rel="noopener" class="btn telegram-invite-primary" data-telegram-cta="first_free_case_ending">افتح قناة البلاغات ←</a>
+      <a href="${INSTAGRAM_URL}" target="_blank" rel="noopener" class="btn ghost telegram-invite-instagram">تابعنا على إنستجرام</a>
       <button type="button" class="btn ghost telegram-invite-later">كمّل من غير انضمام</button>
     </div>
   `;
@@ -281,6 +283,13 @@ function freshGameState(){
     matchSelections:{},
     investigationActionsDone:new Set(), // إجراءات فحص/تفتيش/تحريات ميدانية اتنفذت
     backgroundChecks:new Set(), // suspectId — صحائف الحالة الجنائية التي طلبها اللاعب
+
+    // === نظام نقاط القرار السردية (Decision Points) — تجريبي، بيبدأ بقضية حادثة الطريق ===
+    // قرارات اللاعب بتتسجل كـ flags نصية، وبتأثر على الخاتمة (epilogue) من غير ما تغيّر
+    // الجاني الحقيقي أو تكسر منطق الأدلة الحالي. كل decision بيتفتح مرة واحدة بس لكل قضية.
+    flags: new Set(),            // مجموعة flags نصية اتجمعت من قرارات اللاعب في نقاط القرار
+    decisionsShown: new Set(),   // IDs نقاط القرار اللي اتعرضت بالفعل، عشان ما تتكررش
+    epilogue: null,               // مقطع الخاتمة المتفرعة المختار (لو القضية بتدعم النظام ده)
   };
 }
 
@@ -1039,6 +1048,54 @@ function showNamePrompt(onDone, caseData){
   input.addEventListener('keydown', e=>{ if(e.key==='Enter') confirmBtn.click(); });
 }
 
+/* ============================================================
+   DECISION POINTS — نظام قرارات سردية عام (تجريبي)
+   بيتفعّل بس لو CASE.decisionPoints موجودة. كل قرار بيتعرض مرة واحدة،
+   واختيار اللاعب بيتسجل كـ flag نصي في game.flags، وبيأثر بعدين على
+   الخاتمة (epilogue) في computeEnding/endingHTML من غير ما يغيّر
+   منطق تحديد الجاني أو الأدلة الحاسمة.
+   ============================================================ */
+function pendingDecisionPoint(trigger){
+  if(!CASE || !Array.isArray(CASE.decisionPoints)) return null;
+  return CASE.decisionPoints.find(dp => dp.trigger === trigger && !game.decisionsShown.has(dp.id)) || null;
+}
+
+function showDecisionPoint(dp, onDone){
+  gaTrack('decision_point_shown', { decision_id: String(dp.id || '') });
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal decision-modal" style="max-width:520px;">
+      <div class="tag" style="color:var(--signal);">🔀 قرار</div>
+      <h3>${dp.title}</h3>
+      <p class="dim" style="line-height:1.7;">${dp.text}</p>
+      <div class="q-grid" id="decisionOptions" style="margin-top:14px;">
+        ${(dp.options||[]).map((o,i)=>`<button class="btn ${i===0?'':'ghost'}" data-decision-opt="${o.id}" style="width:100%; margin-bottom:8px; text-align:right;">${o.label}</button>`).join('')}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelectorAll('[data-decision-opt]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const optId = btn.dataset.decisionOpt;
+      const opt = (dp.options||[]).find(o=>o.id===optId);
+      if(opt && opt.flag) game.flags.add(opt.flag);
+      game.decisionsShown.add(dp.id);
+      gaTrack('decision_point_chosen', { decision_id: String(dp.id||''), option_id: String(optId||''), flag: String((opt&&opt.flag)||'') });
+      persistProgress();
+      overlay.remove();
+      onDone();
+    });
+  });
+}
+
+/* بيحاول يعرض نقطة قرار معينة لو موجودة ولسه ما اتعرضتش، وإلا بيكمل على طول */
+function maybeShowDecisionPoint(trigger, onDone){
+  const dp = pendingDecisionPoint(trigger);
+  if(!dp){ onDone(); return; }
+  showDecisionPoint(dp, onDone);
+}
+
 function showPlayModePrompt(caseData, opts={}){
   if(document.getElementById('playModeOverlay')) return;
   const overlay = document.createElement('div');
@@ -1154,6 +1211,9 @@ function enterCase(caseData, opts={}){
     game.matchSelections = saved.matchSelections || {};
     game.investigationActionsDone = new Set(saved.investigationActionsDone || []);
     game.backgroundChecks = new Set(saved.backgroundChecks || []);
+    game.flags = new Set(saved.flags || []);
+    game.decisionsShown = new Set(saved.decisionsShown || []);
+    game.epilogue = saved.epilogue || null;
   } else {
     addUnlockedId(CASE.id); // قضية مجانية، تتسجل كمفتوحة أول ما تتلعب
     app.unlockedIds = getUnlockedIds();
@@ -1255,6 +1315,9 @@ function persistProgress(){
     matchSelections: game.matchSelections,
     investigationActionsDone: [...game.investigationActionsDone],
     backgroundChecks: [...game.backgroundChecks],
+    flags: [...game.flags],
+    decisionsShown: [...game.decisionsShown],
+    epilogue: game.epilogue || null,
   });
 }
 
@@ -1388,7 +1451,10 @@ function endPrologue(reason='complete'){
   const p = document.getElementById('prologue');
   if(!p) return;
   p.classList.add('hide');
-  setTimeout(()=>{ p.remove(); mountGameShell(); }, 500);
+  setTimeout(()=>{
+    p.remove();
+    maybeShowDecisionPoint('afterPrologue', mountGameShell);
+  }, 500);
 }
 
 /* ============================================================
@@ -1609,6 +1675,10 @@ function typeText(el, text, speed, onDone){
 function renderTabs(){
   const tabsEl = document.getElementById('tabs');
   const fieldworkAvailable = investigationActionsForCase().length > 0;
+  const fieldworkRequiredEvidence = Array.isArray(CASE.fieldworkUnlockEvidenceIds)
+    ? CASE.fieldworkUnlockEvidenceIds
+    : [];
+  const fieldworkUnlocked = fieldworkRequiredEvidence.every(id=>game.collected.has(id));
   const audioAvailable = CASE.audioPuzzle && CASE.audioPuzzle.enabled;
   const audioUnlockId = evidenceThatUnlocksAudio();
   // لو القضية ماحددتش دليل بعينه يفتح التحليل الصوتي، التبويب يبقى متاح من البداية.
@@ -1668,7 +1738,7 @@ function renderTabs(){
   const defs = [
     {id:'briefing', label:'ملف القضية'},
   ];
-  if(fieldworkAvailable) defs.push({id:'fieldwork', label:'فحص وتحريات'});
+  if(fieldworkAvailable) defs.push({id:'fieldwork', label:'فحص وتحريات', locked: !fieldworkUnlocked});
   const mustVisitSceneFirst = currentPlayMode()==='realistic' && isForensicCase() && !game.investigationActionsDone.has('__real_scene_visit');
   defs.push(
     {id:'evidence', label:'لوحة الأدلة'},
@@ -1905,6 +1975,8 @@ function collect(id, opts={}){
     }
     persistProgress();
     checkEvidenceCombinations();
+    const dp = pendingDecisionPoint('afterEvidence:' + id);
+    if(dp) setTimeout(()=> showDecisionPoint(dp, ()=>{ render(); }), 700);
     return true;
   }
   return false;
@@ -3320,6 +3392,13 @@ function finishGenericPuzzle(type, cfg, solvedFlag, reason){
   setTimeout(()=>render(), 900);
 }
 
+function normalizeCodeDigits(value){
+  return String(value == null ? '' : value)
+    .replace(/[٠-٩]/g, digit=>String(digit.charCodeAt(0)-1632))
+    .replace(/[۰-۹]/g, digit=>String(digit.charCodeAt(0)-1776))
+    .replace(/[^0-9]/g, '');
+}
+
 function codeLockHTML(){
   const cfg = CASE.codeLockPuzzle;
   const label = cfg.tabLabel || 'فك القفل';
@@ -3329,13 +3408,15 @@ function codeLockHTML(){
     <p class="dim">${cfg.introText||''}</p>
     ${cfg.hint ? `<p class="dim mono">تلميح الملف: ${cfg.hint}</p>` : ''}
     <label style="display:block; margin:16px 0 6px;">الكود</label>
-    <input id="codeLockInput" inputmode="numeric" autocomplete="off" maxlength="${String(cfg.code||'').length || 8}" value="${game.codeLockInput||''}" style="width:100%;max-width:320px;padding:12px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);border-radius:8px;" />
+    <input id="codeLockInput" inputmode="numeric" pattern="[0-9٠-٩۰-۹]*" autocomplete="off" maxlength="${String(cfg.code||'').length || 8}" value="${normalizeCodeDigits(game.codeLockInput||'')}" style="width:100%;max-width:320px;padding:12px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);border-radius:8px;" />
     <div><button class="btn" id="submitCodeLock" style="margin-top:12px;">تأكيد الكود</button></div>
     <div class="wave-feedback" id="codeLockFeedback"></div>`;
 }
 function submitCodeLock(){
   const cfg=CASE.codeLockPuzzle, input=document.getElementById('codeLockInput');
-  const val=(input?.value||'').trim(); game.codeLockInput=val; persistProgress();
+  const val=normalizeCodeDigits(input?.value||'').slice(0, String(cfg.code||'').length || 8);
+  if(input) input.value=val;
+  game.codeLockInput=val; persistProgress();
   const fb=document.getElementById('codeLockFeedback');
   if(val===String(cfg.code||'')){
     if(fb){fb.textContent='✓ '+(cfg.resultText||'الكود صح.');fb.className='wave-feedback ok';}
@@ -3489,6 +3570,23 @@ function drawBoardConnections(){
 }
 window.addEventListener('resize', ()=>{ if(game && game.screen==='accusation') drawBoardConnections(); });
 
+// بيدور على مقطع خاتمة إضافي (epilogue) يطابق تركيبة الـ flags اللي اللاعب
+// جمعها من نقاط القرار، جوه شريحة النتيجة الحالية (good/partial/bad).
+// شكل CASE.epilogues[tier]: { 'flagA|flagB': {title, paragraphs}, default: {...} }
+// المفتاح بيتكوّن من flags القضية دي بس (بترتيب أبجدي) عشان يبقى ثابت.
+function resolveEpilogue(){
+  if(!CASE.epilogues) return null;
+  const tierMap = CASE.epilogues[game.ending];
+  if(!tierMap) return null;
+  const relevantFlags = [...game.flags].filter(f => Object.keys(tierMap).some(k => k.split('|').includes(f)));
+  const key = relevantFlags.sort().join('|');
+  return tierMap[key] || tierMap.default || null;
+}
+
+function computeEndingGated(){
+  maybeShowDecisionPoint('preAccusation', computeEnding);
+}
+
 function computeEnding(){
   const el = document.getElementById('panelBody');
   el.classList.remove('slide-r','slide-l');
@@ -3511,6 +3609,11 @@ function computeEnding(){
     if(correctSuspect && hits>=required && theory.passed) game.ending='good';
     else if(correctSuspect) game.ending='partial';
     else game.ending='bad';
+
+    // نظام الخاتمة المتفرعة (epilogue) — بيختار مقطع ختامي إضافي حسب قرارات
+    // اللاعب في نقاط القرار (game.flags)، فوق تقييم الأدلة الأساسي (good/partial/bad).
+    // بيرجع null بهدوء لو القضية مالهاش CASE.epilogues أصلاً (باقي القضايا زي ما هي).
+    game.epilogue = resolveEpilogue();
 
     // في القضايا المتوسطة والصعبة، معرفة الجاني لوحدها مش كفاية: نظرية الجريمة لازم تكون متماسكة.
     if(theory.enabled && theory.required>0){
@@ -3767,12 +3870,19 @@ function endingHTML(){
     : e.paragraphs.map(p=>`<p>${p.replace('{wrongName}', wrongName)}</p>`).join('');
   const hintText = game.ending === 'partial' ? normalizedEndingHint(e.hint) : e.hint;
   const hint = hintText ? `<p class="dim">${hintText}</p>` : '';
+  const epilogueHTML = game.epilogue ? `
+    <div class="divider"></div>
+    <div class="tag" style="color:var(--signal);">🔀 خاتمة القرارات</div>
+    <h3 style="margin-top:6px;">${game.epilogue.title}</h3>
+    ${(game.epilogue.paragraphs||[]).map(p=>`<p>${p.replace('{wrongName}', wrongName)}</p>`).join('')}
+  ` : '';
   return `
     <div class="stamp ${game.ending} mono">${e.stamp}</div>
     <div class="ending-badge ${game.ending} mono">${e.badgeLabel}</div>
     <div class="ending-title ${game.ending}">${e.title}</div>
     ${paragraphs}
     ${hint}
+    ${epilogueHTML}
     ${bonus}
     <div class="score-final mono">تقييم التحقيق النهائي: <strong>${game.score}</strong></div>
     <div class="lb-box">
@@ -4015,7 +4125,12 @@ function attachPanelEvents(){
 
   const codeInput = document.getElementById('codeLockInput');
   if(codeInput){
-    codeInput.addEventListener('input', ()=>{ game.codeLockInput=codeInput.value; });
+    codeInput.addEventListener('input', ()=>{
+      const maxLength = String(CASE.codeLockPuzzle?.code||'').length || 8;
+      const digitsOnly = normalizeCodeDigits(codeInput.value).slice(0, maxLength);
+      if(codeInput.value !== digitsOnly) codeInput.value = digitsOnly;
+      game.codeLockInput=digitsOnly;
+    });
     codeInput.addEventListener('keydown', e=>{ if(e.key==='Enter') submitCodeLock(); });
   }
   const submitCode = document.getElementById('submitCodeLock');
@@ -4062,7 +4177,7 @@ function attachPanelEvents(){
     });
   });
   const submitTheoryBtn = document.getElementById('submitTheory');
-  if(submitTheoryBtn) submitTheoryBtn.addEventListener('click', computeEnding);
+  if(submitTheoryBtn) submitTheoryBtn.addEventListener('click', computeEndingGated);
 
   document.querySelectorAll('[data-contra]').forEach(chip=>{
     chip.addEventListener('click', ()=> handleContradictionClick(chip.dataset.contra));
@@ -4147,7 +4262,7 @@ function attachPanelEvents(){
       game.screen='theory';
       render();
     } else {
-      computeEnding();
+      computeEndingGated();
     }
   });
 
