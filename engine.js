@@ -1517,11 +1517,41 @@ function showStoryScene(sceneId){
     choicesEl.innerHTML = '';
     choicesEl.style.opacity = '0';
     const textEl = document.getElementById('storyText');
-    typeTextSkippable(textEl, s.text, 22, ()=>{
-      choicesEl.innerHTML = (s.choices||[]).map((ch,idx)=>
+    typeTextSkippable(textEl, s.text, 18, ()=>{
+      const inspectsHTML = (s.inspects||[]).length ? `
+        <div id="storyInspects" style="margin-bottom:12px;">
+          <p class="dim mono" style="font-size:11px; margin-bottom:8px;">🔍 حاجات تقدر تفحصها قبل ما تقرر (اختياري)</p>
+          <div id="storyInspectChips" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"></div>
+          <div id="storyInspectDetail"></div>
+        </div>` : '';
+      const choicesHTML = (s.choices||[]).map((ch,idx)=>
         `<button class="btn ${idx===0?'':'ghost'}" data-story-choice="${idx}" style="width:100%; margin-bottom:8px; text-align:right;">${ch.label}</button>`
       ).join('');
+      choicesEl.innerHTML = inspectsHTML + choicesHTML;
       choicesEl.style.opacity = '1';
+
+      if((s.inspects||[]).length){
+        const chipsEl = document.getElementById('storyInspectChips');
+        const detailEl = document.getElementById('storyInspectDetail');
+        chipsEl.innerHTML = s.inspects.map((insp,idx)=>
+          `<button class="tag mono" data-inspect="${idx}" style="cursor:pointer; border:1px solid var(--line); background:var(--panel-2); padding:6px 12px;">${insp.label}</button>`
+        ).join('');
+        chipsEl.querySelectorAll('[data-inspect]').forEach(chip=>{
+          chip.addEventListener('click', ()=>{
+            const insp = s.inspects[Number(chip.dataset.inspect)];
+            if(!insp) return;
+            chip.disabled = true;
+            chip.style.opacity = '0.5';
+            const p = document.createElement('p');
+            p.className = 'dim';
+            p.style.cssText = 'border-right:2px solid var(--signal); padding-right:10px; margin:6px 0;';
+            p.textContent = '🔍 ' + insp.detail;
+            detailEl.appendChild(p);
+            gaTrack('story_inspect', { scene_id: String(sceneId||''), inspect_label: String(insp.label||'') });
+          });
+        });
+      }
+
       choicesEl.querySelectorAll('[data-story-choice]').forEach(btn=>{
         btn.addEventListener('click', ()=>{
           const choice = s.choices[Number(btn.dataset.storyChoice)];
