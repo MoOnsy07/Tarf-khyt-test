@@ -3684,6 +3684,7 @@ function theoryHTML(){
   }).join('');
   const allAnswered = cfg.questions.every(q=>answers[q.id]);
   return `
+    <div class="tag mono" style="color:var(--signal); margin-bottom:6px;">الخطوة ٢ من ٢ — نظرية الجريمة</div>
     <h2>ابني نظرية الجريمة</h2>
     <p class="dim">قبل ما تقفل القضية، فسّر إزاي حصلت الجريمة بالظبط. في القضايا الأصعب، اختيار الجاني الصح لوحده مش كفاية لنهاية كاملة.</p>
     <div class="divider"></div>
@@ -3733,7 +3734,16 @@ function accusationHTML(){
     warning = `<div class="board-warning">الاتهام محتاج ملف أقوى: اربط على الأقل ${minLinks} أدلة بالشخص قبل ما تقفل القضية.</div>`;
   }
 
+  const hasTheory = !!(CASE.theoryBuilder && CASE.theoryBuilder.enabled);
+  const stepBadge = hasTheory
+    ? `<div class="tag mono" style="color:var(--signal); margin-bottom:6px;">الخطوة ١ من ٢ — اختيار المتهم</div>`
+    : '';
+  const submitLabel = hasTheory ? 'التالي: ابني نظرية الجريمة ←' : 'قدّم الاتهام النهائي';
+  const submitHint = hasTheory
+    ? `<p class="dim" style="font-size:12px; margin-top:8px;">بعد الخطوة دي هتحتاج تفسّر إزاي حصلت الجريمة بالظبط قبل ما القضية تتقفل نهائيًا.</p>`
+    : '';
   return `
+    ${stepBadge}
     <h2>لوحة التحقيق</h2>
     <p class="dim">اختار الأدلة اللي فعلًا بتبني عليها اتهامك واربطها بمشتبه واحد. التقييم النهائي بيحسب كل الأدلة الحاسمة اللي اكتشفتها أثناء التحقيق، واللوحة بتوضح الشخص اللي بتتهمه.</p>
     <div class="divider"></div>
@@ -3743,7 +3753,8 @@ function accusationHTML(){
       <div class="board-col"><h4 class="mono">المشتبه بهم</h4>${susChips}</div>
     </div>
     ${warning}
-    <button class="btn" id="submitAcc" ${canSubmit?'':'disabled'} style="margin-top:16px;">قدّم الاتهام النهائي</button>
+    <button class="btn" id="submitAcc" ${canSubmit?'':'disabled'} style="margin-top:16px;">${submitLabel}</button>
+    ${submitHint}
   `;
 }
 
