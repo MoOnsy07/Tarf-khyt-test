@@ -1,0 +1,49 @@
+{
+  "packageId": "online.taraf5eet.app",
+  "host": "taraf5eet.online",
+  "name": "طرف الخيط",
+  "launcherName": "طرف الخيط",
+  "display": "standalone",
+  "themeColor": "#0a0c12",
+  "themeColorDark": "#0a0c12",
+  "navigationColor": "#0a0c12",
+  "navigationColorDark": "#0a0c12",
+  "navigationDividerColor": "#0a0c12",
+  "navigationDividerColorDark": "#0a0c12",
+  "backgroundColor": "#0a0c12",
+  "enableNotifications": false,
+  "startUrl": "/index.html?pwa=1",
+  "iconUrl": "https://taraf5eet.online/icons/icon-512.png",
+  "maskableIconUrl": "https://taraf5eet.online/icons/icon-512-maskable.png",
+  "monochromeIconUrl": "",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "taraf5eet"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://taraf5eet.online/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "playBilling": {
+      "enabled": true
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://taraf5eet.online/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "shareTarget": null
+}
