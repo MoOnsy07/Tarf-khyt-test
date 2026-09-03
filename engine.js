@@ -291,6 +291,8 @@ function freshGameState(){
     decisionsShown: new Set(),   // IDs نقاط القرار اللي اتعرضت بالفعل، عشان ما تتكررش
     epilogue: null,               // مقطع الخاتمة المتفرعة المختار (لو القضية بتدعم النظام ده)
     currentScene: (CASE && CASE.storyMode) ? CASE.startScene : null,
+    storyStats: (CASE && CASE.storyMode && CASE.initialStoryStats) ? {...CASE.initialStoryStats} : {},
+    storyInvestigation: {},   // sceneId -> {checked:[hotspotId,...]} لمشاهد التحقيق بالنقاط (hotspots)
   };
 }
 
@@ -1216,6 +1218,8 @@ function enterCase(caseData, opts={}){
     game.decisionsShown = new Set(saved.decisionsShown || []);
     game.epilogue = saved.epilogue || null;
     game.currentScene = saved.currentScene || (CASE.storyMode ? CASE.startScene : null);
+    game.storyStats = saved.storyStats || ((CASE.storyMode && CASE.initialStoryStats) ? {...CASE.initialStoryStats} : {});
+    game.storyInvestigation = saved.storyInvestigation || {};
   } else {
     addUnlockedId(CASE.id); // قضية مجانية، تتسجل كمفتوحة أول ما تتلعب
     app.unlockedIds = getUnlockedIds();
@@ -1322,6 +1326,8 @@ function persistProgress(){
     decisionsShown: [...game.decisionsShown],
     epilogue: game.epilogue || null,
     currentScene: game.currentScene || null,
+    storyStats: game.storyStats || {},
+    storyInvestigation: game.storyInvestigation || {},
   });
 }
 
@@ -1497,6 +1503,46 @@ function startStoryMode(){
   showStoryScene(game.currentScene || CASE.startScene);
 }
 
+/* ============================================================
+   STORY MODE — نظام الشروط والإحصائيات (v2 اندمج هنا)
+   ============================================================ */
+
+// بيفحص شرط زي: {flag:'x'} أو {notFlag:'x'} أو {stat:{key:'trust', gte:3}}
+// أو {all:[cond,cond]} أو {any:[cond,cond]}. من غير شرط، بيرجع true دايمًا.
+function storyConditionPasses(cond){
+  if(!cond) return true;
+  if(Array.isArray(cond)) return cond.every(storyConditionPasses);
+  if(cond.all) return cond.all.every(storyConditionPasses);
+  if(cond.any) return cond.any.some(storyConditionPasses);
+  if(cond.flag && !game.flags.has(cond.flag)) return false;
+  if(cond.notFlag && game.flags.has(cond.notFlag)) return false;
+  if(cond.stat){
+    const val = Number(game.storyStats[cond.stat.key] || 0);
+    if(cond.stat.gte != null && val < cond.stat.gte) return false;
+    if(cond.stat.lte != null && val > cond.stat.lte) return false;
+    if(cond.stat.eq  != null && val !== cond.stat.eq) return false;
+  }
+  return true;
+}
+
+// choice.next ممكن يبقى نص عادي (اسم مشهد)، أو مصفوفة "مسارات" بتتفحص بالترتيب:
+// [{when:{stat:{key:'trust',gte:3}}, to:'scene_a'}, {to:'scene_b'}] — أول شرط بينجح بيكسب.
+function resolveStoryNext(next){
+  if(typeof next === 'string') return next;
+  if(Array.isArray(next)){
+    const hit = next.find(route => storyConditionPasses(route.when));
+    return hit ? hit.to : null;
+  }
+  return null;
+}
+
+function applyStoryChoiceEffects(choice){
+  if(choice.flag) game.flags.add(choice.flag);
+  Object.entries(choice.statEffects || {}).forEach(([key, delta])=>{
+    game.storyStats[key] = Number(game.storyStats[key] || 0) + Number(delta || 0);
+  });
+}
+
 function showStoryScene(sceneId){
   const s = CASE.scenes[sceneId];
   if(!s){ console.warn('Unknown story scene:', sceneId, CASE.id); return; }
@@ -1505,6 +1551,7 @@ function showStoryScene(sceneId){
   gaTrack('story_scene_shown', { scene_id: String(sceneId||''), ending: s.isEnding ? (s.endingType||'') : '' });
 
   if(s.isEnding){ showStoryEnding(s); return; }
+  if(s.type === 'investigation'){ showStoryInvestigation(s); return; }
 
   const bg = document.getElementById('storyBg');
   const content = document.getElementById('storyContent');
@@ -1524,10 +1571,14 @@ function showStoryScene(sceneId){
           <div id="storyInspectChips" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"></div>
           <div id="storyInspectDetail"></div>
         </div>` : '';
-      const choicesHTML = (s.choices||[]).map((ch,idx)=>
+
+      // خيارات مرئية بس: أي خيار عنده `when` بيتفحص شرطه (خيارات سرية بتتفتح بشروط)
+      const visibleChoices = (s.choices||[]).filter(ch => storyConditionPasses(ch.when));
+      const timerHTML = s.timer ? `<div id="storyTimer" style="margin-bottom:10px;"></div>` : '';
+      const choicesHTML = visibleChoices.map((ch,idx)=>
         `<button class="btn ${idx===0?'':'ghost'}" data-story-choice="${idx}" style="width:100%; margin-bottom:8px; text-align:right;">${ch.label}</button>`
       ).join('');
-      choicesEl.innerHTML = inspectsHTML + choicesHTML;
+      choicesEl.innerHTML = inspectsHTML + timerHTML + choicesHTML;
       choicesEl.style.opacity = '1';
 
       if((s.inspects||[]).length){
@@ -1552,16 +1603,45 @@ function showStoryScene(sceneId){
         });
       }
 
+      let timerInterval = null;
+      function commitChoice(choice, viaTimeout){
+        clearInterval(timerInterval);
+        applyStoryChoiceEffects(choice);
+        gaTrack(viaTimeout ? 'story_choice_timeout' : 'story_choice_made', {
+          scene_id: String(sceneId||''), choice_label: String(choice.label||''), flag: String(choice.flag||''),
+        });
+        persistProgress();
+        showStoryScene(resolveStoryNext(choice.next));
+      }
+
       choicesEl.querySelectorAll('[data-story-choice]').forEach(btn=>{
         btn.addEventListener('click', ()=>{
-          const choice = s.choices[Number(btn.dataset.storyChoice)];
-          if(!choice) return;
-          if(choice.flag) game.flags.add(choice.flag);
-          gaTrack('story_choice_made', { scene_id: String(sceneId||''), choice_label: String(choice.label||''), flag: String(choice.flag||'') });
-          persistProgress();
-          showStoryScene(choice.next);
+          const choice = visibleChoices[Number(btn.dataset.storyChoice)];
+          if(choice) commitChoice(choice, false);
         });
       });
+
+      // قرار بعدّاد زمني: لو الوقت خلص، بيتاخد الخيار الافتراضي (timeoutChoiceIndex أو أول خيار)
+      if(s.timer){
+        const timerEl = document.getElementById('storyTimer');
+        const duration = Math.max(1, Number(s.timer.seconds || 20));
+        let left = duration;
+        timerEl.innerHTML = `<div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;" class="mono dim"><span>${s.timer.label || 'الوقت المتبقي'}</span><strong id="storyTimerText">${left}</strong></div><div style="height:4px; background:var(--panel-2); border-radius:2px; overflow:hidden;"><div id="storyTimerBar" style="height:100%; background:var(--signal); width:100%; transition:width .1s linear;"></div></div>`;
+        const textEl2 = document.getElementById('storyTimerText');
+        const barEl = document.getElementById('storyTimerBar');
+        timerInterval = setInterval(()=>{
+          left -= 0.1;
+          const pct = Math.max(0, left/duration*100);
+          if(barEl) barEl.style.width = pct + '%';
+          if(textEl2) textEl2.textContent = String(Math.max(0, Math.ceil(left)));
+          if(left <= 0){
+            clearInterval(timerInterval);
+            const idx = s.timer.timeoutChoiceIndex != null ? s.timer.timeoutChoiceIndex : 0;
+            const fallback = visibleChoices[idx] || visibleChoices[0];
+            if(fallback){ showToast(s.timer.timeoutMessage || 'الوقت خلص. سكوتك اتحسب قرار.'); commitChoice(fallback, true); }
+          }
+        }, 100);
+      }
     });
   }
 
@@ -1575,6 +1655,83 @@ function showStoryScene(sceneId){
       content.classList.remove('fading');
     });
   }, 420);
+}
+
+/* ============================================================
+   STORY MODE — مشهد تحقيق بنقاط فحص (hotspots) على صورة
+   ============================================================ */
+function showStoryInvestigation(s){
+  const bg = document.getElementById('storyBg');
+  const content = document.getElementById('storyContent');
+  bg.style.backgroundImage = s.img ? `url('${s.img}')` : 'none';
+
+  if(!game.storyInvestigation[s.id]) game.storyInvestigation[s.id] = { checked: [] };
+  const inv = game.storyInvestigation[s.id];
+  const limit = Number(s.limit || (s.hotspots||[]).length);
+
+  function renderInvestigation(){
+    document.getElementById('storyLabel').textContent = s.label || '';
+    const remaining = Math.max(0, limit - inv.checked.length);
+    const choicesEl = document.getElementById('storyChoices');
+    choicesEl.style.opacity = '1';
+    choicesEl.innerHTML = `
+      <p class="prologue-text" style="animation:none;">${s.text || ''}</p>
+      <p class="dim mono" style="font-size:11px; margin:8px 0;">فحوص متبقية: <strong id="invRemaining">${remaining}</strong></p>
+      <div id="storyHotspotLayer" style="position:relative; width:100%; aspect-ratio:16/10; margin-bottom:14px; border-radius:10px; overflow:hidden; background-size:cover; background-position:center;"></div>
+      <div id="storyHotspotDetail"></div>
+      <div id="invContinueWrap"></div>
+    `;
+    const layer = document.getElementById('storyHotspotLayer');
+    layer.style.backgroundImage = s.img ? `url('${s.img}')` : 'none';
+    (s.hotspots||[]).filter(h => storyConditionPasses(h.when)).forEach(h=>{
+      const btn = document.createElement('button');
+      const done = inv.checked.includes(h.id);
+      btn.className = 'tag mono';
+      btn.textContent = done ? '✓ ' + h.title : '🔍 ' + h.title;
+      btn.style.cssText = `position:absolute; left:${h.area.x}%; top:${h.area.y}%; width:${h.area.w}%; height:${h.area.h}%; border:2px dashed var(--signal); background:rgba(0,0,0,.35); color:#fff; opacity:${done?0.55:1}; cursor:${done?'default':'pointer'};`;
+      if(!done){
+        btn.addEventListener('click', ()=>openHotspot(h));
+      } else {
+        btn.disabled = true;
+      }
+      layer.appendChild(btn);
+    });
+    const contWrap = document.getElementById('invContinueWrap');
+    if(inv.checked.length >= limit){
+      contWrap.innerHTML = `<button class="btn" id="invContinueBtn" style="width:100%; margin-top:6px;">${s.completeLabel || 'كمّل ←'}</button>`;
+      document.getElementById('invContinueBtn').addEventListener('click', ()=>{
+        persistProgress();
+        showStoryScene(resolveStoryNext(s.next));
+      });
+    } else {
+      contWrap.innerHTML = '';
+    }
+  }
+
+  function openHotspot(h){
+    const detailEl = document.getElementById('storyHotspotDetail');
+    detailEl.innerHTML = `
+      <div class="modal" style="position:relative; max-width:100%; margin-top:10px;">
+        <div class="tag mono" style="color:var(--signal);">🔍 ${h.title}</div>
+        <p style="margin-top:6px;">${h.detail}</p>
+        <button class="btn" id="hotspotCollectBtn" style="width:100%; margin-top:10px;">${h.actionLabel || 'سجّل ودّور تاني'}</button>
+      </div>
+    `;
+    document.getElementById('hotspotCollectBtn').addEventListener('click', ()=>{
+      inv.checked.push(h.id);
+      if(h.flag) game.flags.add(h.flag);
+      Object.entries(h.statEffects || {}).forEach(([key, delta])=>{
+        game.storyStats[key] = Number(game.storyStats[key] || 0) + Number(delta || 0);
+      });
+      gaTrack('story_hotspot_checked', { scene_id: String(s.id||''), hotspot_id: String(h.id||'') });
+      persistProgress();
+      detailEl.innerHTML = '';
+      renderInvestigation();
+    });
+  }
+
+  renderInvestigation();
+  content.style.opacity = '1';
 }
 
 function showStoryEnding(s){

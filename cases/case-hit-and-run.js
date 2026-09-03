@@ -358,6 +358,9 @@ const CASE_HIT_AND_RUN = {
   const c = CASE_HIT_AND_RUN;
   c.storyMode = true;
   c.startScene = 'scene_after_party';
+  // نظام إحصائيات جديد (زي v2): suspicion بيتراكم حسب أسلوبك في التحقيق،
+  // وبيفتح خيار سري إضافي في المواجهة الأخيرة لو وصل لعتبة معينة.
+  c.initialStoryStats = { suspicion: 0 };
 
   c.scenes = {
 
@@ -416,8 +419,8 @@ const CASE_HIT_AND_RUN = {
       label: 'الفصل الثاني — قرار',
       text: 'رقم اللوحة الجزئي اللي أحمد شافه بيوصل لعربية يوسف، واحد من مجموعة الأصحاب اللي كانوا في العزومة. عندك طريقتين تبدأ بيهم: تدخل على المجموعة بصرامة وتواجه كريم على طول (كان واقف جنب يوسف قبل ما مينا يمشي)، أو تكلم يوسف الأول بهدوء من غير ما تكشف نيتك الحقيقية.',
       choices: [
-        { label:'⚡ واجه كريم على طول', next:'scene_karim_first', flag:'approach_pressure' },
-        { label:'🕵️ اتكلم مع يوسف الأول', next:'scene_yousef_first', flag:'approach_patient' },
+        { label:'⚡ واجه كريم على طول', next:'scene_karim_first', flag:'approach_pressure', statEffects:{suspicion:2} },
+        { label:'🕵️ اتكلم مع يوسف الأول', next:'scene_yousef_first', flag:'approach_patient', statEffects:{suspicion:0} },
       ],
     },
     scene_karim_first: {
@@ -443,15 +446,19 @@ const CASE_HIT_AND_RUN = {
 
     // ============ تقابل: مسرح الجريمة ============
     scene_crime_scene: {
+      type: 'investigation',
+      id: 'scene_crime_scene',
       img: IMG_BASE_HITRUN + 'hitrun-scene2.jpg',
       label: 'الفصل الثاني — مسرح الجريمة',
-      text: 'رجعت لمكان الحادثة في الصبح عشان تفحصه بعين هادية من غير زحمة الليل والناس المتجمعة. الشارع دلوقتي فاضي وهادي، والشمس بتوضح تفاصيل كانت مختفية في الضلمة. الرصيف لسه فيه آثار خفيفة من الصدمة. المكان قريب من كام كاميرا مراقبة لمحلات، وده ممكن يفيد لو حد يقدر يراجعها.',
-      inspects: [
-        { label: '👀 افحص الأرض حوالين مكان الصدمة', detail: 'مفيش حاجة سقطت من العربية، لكن لاحظت اتجاه آثار الإطارات — العربية كانت جاية من ناحية بيت العزومة مباشرة، مش من طريق تاني.' },
-        { label: '👀 افحص الكاميرات القريبة', detail: 'فيه كاميرا محل صغير على الناصية، زاويتها ممكن تكون شافت جزء من لحظة الحادثة أو العربية وهي بترجع.' },
-        { label: '👀 قيس المسافة من بيت العزومة', detail: 'المسافة بين بيت العزومة ومكان الحادثة قريبة جدًا — دقيقتين بالعربية بالكتير.' },
+      text: 'رجعت لمكان الحادثة في الصبح عشان تفحصه بعين هادية من غير زحمة الليل والناس المتجمعة. الشارع دلوقتي فاضي وهادي، والشمس بتوضح تفاصيل كانت مختفية في الضلمة. دوس على أي نقطة في الصورة عشان تفحصها.',
+      limit: 2,
+      completeLabel: 'كفاية، كمّل التحقيق ←',
+      hotspots: [
+        { id:'ground', title:'أثر الإطارات', area:{x:30,y:60,w:30,h:30}, detail:'مفيش حاجة سقطت من العربية، لكن لاحظت اتجاه آثار الإطارات — العربية كانت جاية من ناحية بيت العزومة مباشرة، مش من طريق تاني.' },
+        { id:'camera', title:'كاميرا المحل', area:{x:70,y:10,w:20,h:25}, detail:'فيه كاميرا محل صغير على الناصية، زاويتها ممكن تكون شافت جزء من لحظة الحادثة أو العربية وهي بترجع.' },
+        { id:'distance', title:'المسافة من العزومة', area:{x:5,y:40,w:20,h:20}, detail:'المسافة بين بيت العزومة ومكان الحادثة قريبة جدًا — دقيقتين بالعربية بالكتير.' },
       ],
-      choices: [ { label:'التالي ←', next:'scene_plate_lead' } ],
+      next: 'scene_plate_lead',
     },
     scene_plate_lead: {
       img: IMG_BASE_HITRUN + 'hitrun-plate.jpg',
@@ -477,9 +484,10 @@ const CASE_HIT_AND_RUN = {
       text: 'عندك دلوقتي: شهادة نور عن قميص فاتح وتبديل أماكن، كريم بينكر ركوبه العربية من الأساس، ويوسف بيصر إنه كان راكب بس. 3 طرق تقدر تكمل بيها: تتحقق من إيصال تاكسي قدمه كريم كأليبي، تواجه كريم مباشرة بالتناقض، أو تتهم يوسف فورًا بناءً على ملكيته للعربية بس.',
       choices: [
         { label:'📋 تحقق من إيصال التاكسي بتاع كريم', next:'scene_check_taxi', flag:'checked_taxi' },
-        { label:'🎯 واجه كريم مباشرة بالتناقض', next:'scene_confront_karim', flag:'confronted_karim' },
+        { label:'🎯 واجه كريم مباشرة بالتناقض', next:'scene_confront_karim', flag:'confronted_karim', statEffects:{suspicion:2} },
         { label:'⚠️ اتهم يوسف فورًا بملكية العربية', next:'ending_bad', flag:'accused_yousef_early' },
       ],
+      timer: { seconds: 25, label: 'الوقت ضيق — لجنة الأمن هتقفل الملف لو ما اتخدش قرار', timeoutChoiceIndex: 0, timeoutMessage: 'الوقت خلص. اخترت تتحقق من إيصال التاكسي تلقائيًا.' },
     },
     scene_check_taxi: {
       img: IMG_BASE_HITRUN + 'hitrun-receipt.jpg',
@@ -542,10 +550,21 @@ const CASE_HIT_AND_RUN = {
         { label:'📢 واجهه قدام المجموعة كلها', next:'ending_good_public', flag:'public_confrontation' },
         { label:'🤝 خده على جنب واحد لواحد', next:'ending_good_private', flag:'private_confrontation' },
         { label:'🕊️ دّيه فرصة يعترف بنفسه', next:'ending_voluntary', flag:'gave_chance' },
+        // خيار سري: بيظهر بس لو ضغطت بشدة طول التحقيق (suspicion≥4) — واجهته بعصبية زايدة
+        { label:'🔥 هدده بالبلاغ فورًا لو ما اعترفش دلوقتي', next:'ending_good_threat', flag:'threatened_karim', when:{ stat:{ key:'suspicion', gte:4 } } },
       ],
     },
 
-    // ============ الخواتيم الأربعة ============
+    // ============ الخواتيم الأربعة (+ خاتمة سرية واحدة) ============
+    ending_good_threat: {
+      isEnding: true, endingType: 'good',
+      img: IMG_BASE_HITRUN + 'karim-breaking.jpg',
+      stamp: 'القضية اتقفلت', title: 'اعتراف تحت الضغط',
+      paragraphs: [
+        'الضغط المتراكم من أسلوبك في التحقيق من البداية للنهاية خلاك تواجه كريم بحسم شديد: "تعترف دلوقتي، وإلا أبلغ فورًا من غير ما أدّيك أي فرصة تانية." الحسم الزيادة ده كسر كريم بسرعة غير متوقعة.',
+        'اعترف على طول من الخوف، لكن الطريقة القاسية اللي اتقفلت بيها القضية سابت أثر متوتر بينك وبين باقي المجموعة، حتى اللي كانوا بريئين حسّوا بضغط زيادة عن اللازم.',
+      ],
+    },
     ending_good_public: {
       isEnding: true,
       endingType: 'good',
