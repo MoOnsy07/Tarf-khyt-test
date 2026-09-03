@@ -405,7 +405,7 @@ const CASE_FAKE_AUDIO = {
       choices: [ { label:'التالي ←', next:'scene_karim_interview' } ],
     },
     scene_karim_interview: {
-      img: IMG_BASE_FAKEAUDIO + 'karim.jpg',
+      img: IMG_BASE_FAKEAUDIO + 'karim-confident.jpg',
       label: 'الفصل الثاني — كريم',
       text: 'كريم بيستقبلك في مكتبه، واثق من نفسه. لما تسأله عن علاقته بماجد، بيقولك: "خسرت مناقصة كبيرة جدًا لصالحه من سنتين، خسارة أثرت على شركتي بشكل حقيقي وقتها." بتسأله عن خبرته في مونتاج الصوت، فبيتفاجئ شوية بس بيرد: "شغلت استوديو إنتاج إعلاني زمان قبل ما أدخل المقاولات، فأيوه، عندي خلفية تقنية في المونتاج الصوتي."',
       inspects: [
@@ -415,7 +415,7 @@ const CASE_FAKE_AUDIO = {
     },
 
     scene_decision2: {
-      img: IMG_BASE_FAKEAUDIO + 'karim.jpg',
+      img: IMG_BASE_FAKEAUDIO + 'karim-confident.jpg',
       label: 'الفصل الثالث — قرار',
       text: 'عندك دلوقتي: خسارة كريم لمناقصة كبيرة، وخبرته التقنية في مونتاج الصوت. تقدر تدور على رابط رقمي يربط ملف الابتزاز بيه، تواجهه مباشرة بالتناقض، أو تتهم تامر فورًا بناءً على خلافه المالي القديم مع ماجد.',
       choices: [
@@ -434,7 +434,7 @@ const CASE_FAKE_AUDIO = {
       choices: [ { label:'التالي ←', next:'scene_confront_karim2' } ],
     },
     scene_confront_karim: {
-      img: IMG_BASE_FAKEAUDIO + 'karim.jpg',
+      img: IMG_BASE_FAKEAUDIO + 'karim-caught.jpg',
       label: 'الفصل الثالث — مواجهة مباشرة',
       text: 'واجهت كريم بالتناقض بين خبرته التقنية وموضوع التسجيل. اتلخبط شوية، لكن رد بسرعة: "لأ. ماحمّلتش ولا استخدمت أي تسجيل ليه، ومليش علاقة بالملف اللي اتبعت." كلامه سريع أكتر من اللازم.',
       choices: [ { label:'التالي ←', next:'scene_confront_karim2' } ],
@@ -462,13 +462,13 @@ const CASE_FAKE_AUDIO = {
       choices: [ { label:'التالي ←', next:'scene_pre_final' } ],
     },
     scene_pre_final: {
-      img: IMG_BASE_FAKEAUDIO + 'karim.jpg',
+      img: IMG_BASE_FAKEAUDIO + 'karim-caught.jpg',
       label: 'الفصل الرابع — قبل الإغلاق',
       text: 'كل الأدلة جاهزة: دافع كريم، خبرته التقنية، إثبات التركيب الصوتي، والرابط الرقمي لاستوديوه القديم. الطريقة اللي هتقفل بيها القضية دي هتفرق في نتيجتها.',
       choices: [ { label:'التالي ←', next:'scene_decision4' } ],
     },
     scene_decision4: {
-      img: IMG_BASE_FAKEAUDIO + 'karim.jpg',
+      img: IMG_BASE_FAKEAUDIO + 'karim-caught.jpg',
       label: 'الفصل الرابع — القرار الأخير',
       text: 'قدامك 3 طرق تقفل بيهم القضية: تسلّم الملف الكامل للنيابة رسميًا كواقعة ابتزاز وتلاعب بالدليل الصوتي، تقترح على ماجد تسوية خاصة تجنّب الفضيحة الإعلامية، أو تدّي كريم فرصة يرجع المبلغ المطلوب ويعتذر بدل الملاحقة الجنائية الكاملة.',
       choices: [
@@ -498,7 +498,7 @@ const CASE_FAKE_AUDIO = {
     },
     ending_good_mercy: {
       isEnding: true, endingType: 'good',
-      img: IMG_BASE_FAKEAUDIO + 'karim.jpg',
+      img: IMG_BASE_FAKEAUDIO + 'karim-confessing.jpg',
       stamp: 'القضية اتقفلت', title: 'فرصة تانية',
       paragraphs: [
         'قررت تدّي كريم فرصة يصلّح غلطته من غير ملاحقة جنائية كاملة — يعتذر لماجد بنفسه ويرجع أي مبلغ حاول ياخده. كريم قبل الفرصة بامتنان واضح، حاسس إنه اترمى في قرار مالوش رجعة بسبب غضبه من خسارة المناقصة.',

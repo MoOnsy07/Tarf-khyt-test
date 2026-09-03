@@ -453,7 +453,7 @@ const CASE_LAST_CALL = {
       choices: [ { label:'التالي ←', next:'scene_rasha_interview' } ],
     },
     scene_seif_interview: {
-      img: IMG_BASE_LASTCALL + 'seif.jpg',
+      img: IMG_BASE_LASTCALL + 'seif-composed.jpg',
       label: 'الفصل الثالث — سيف',
       text: 'سيف، شريك فؤاد في الأعمال، بيقولك عن علاقتهم التجارية: "شركاء من سنين، بس كان في خلاف مالي كبير مؤخرًا على تقييم حصة كل واحد فينا في الشركة." بتسأله لو كان عارف بخلاف فؤاد مع بنته، فبيتفاجئ من السؤال: "أيوه، فؤاد كان بيحكيلي عن الموضوع كتير، حتى قال لي مرة إنه فكر يستخدم تسجيلات قديمة لبنته عشان يضغط عليها في موضوع الميراث."',
       inspects: [
@@ -487,13 +487,13 @@ const CASE_LAST_CALL = {
       choices: [ { label:'التالي ←', next:'scene_confront_seif' } ],
     },
     scene_seif_alibi: {
-      img: IMG_BASE_LASTCALL + 'seif.jpg',
+      img: IMG_BASE_LASTCALL + 'seif-cornered.jpg',
       label: 'الفصل الرابع — سؤال الأليبي',
       text: 'رجعت لسيف وسألته يأكد أليبيه بالتفصيل. اتلخبط شوية في كلامه، مش قادر يحدد تفاصيل واضحة عن الليلة، رغم إصراره إنه كان في البيت طول الوقت.',
       choices: [ { label:'التالي ←', next:'scene_confront_seif' } ],
     },
     scene_confront_seif: {
-      img: IMG_BASE_LASTCALL + 'seif.jpg',
+      img: IMG_BASE_LASTCALL + 'seif-cornered.jpg',
       label: 'الفصل الرابع — المواجهة الحاسمة',
       text: 'واجهته بسجل البوابة: "قلت إنك كنت في البيت، لكن سجل بوابة الجراج بيحط عربيتك جوه وقت الوفاة — تفسر ده إزاي؟" سكت لحظة طويلة، بعدين قال بصوت واطي: "عديت عليه فعلًا عشان نكمل كلام الشراكة... بس لما مشيت كان لسه عايش. معرفش إيه اللي حصل بعدي."',
       choices: [ { label:'التالي ←', next:'scene_pre_final' } ],
@@ -505,7 +505,7 @@ const CASE_LAST_CALL = {
       choices: [ { label:'التالي ←', next:'scene_decision4' } ],
     },
     scene_decision4: {
-      img: IMG_BASE_LASTCALL + 'seif.jpg',
+      img: IMG_BASE_LASTCALL + 'seif-cornered.jpg',
       label: 'الفصل الرابع — القرار الأخير',
       text: 'قدامك القرار الأخير: تسلّم الملف كامل للنيابة كواقعة قتل موثقة، تاخد وقت تجهّز منة نفسيًا لسماع التفاصيل كاملة عن خطة أبوها ضدها قبل ما تعلن النتيجة، أو تعلن النتيجة مباشرة من غير أي تمهيد.',
       choices: [
@@ -535,7 +535,7 @@ const CASE_LAST_CALL = {
     },
     ending_good_direct: {
       isEnding: true, endingType: 'good',
-      img: IMG_BASE_LASTCALL + 'seif.jpg',
+      img: IMG_BASE_LASTCALL + 'seif-confessing.jpg',
       stamp: 'القضية اتقفلت', title: 'إعلان مباشر',
       paragraphs: [
         'أعلنت النتيجة مباشرة من غير تمهيد: سيف هو القاتل، وفؤاد نفسه جهّز التسجيل المركب ضد منة. سيف اتحال فورًا لتحقيق قتل عمد بناءً على سجل الجراج ودافعه المالي الواضح.',

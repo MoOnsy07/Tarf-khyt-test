@@ -421,7 +421,7 @@ const CASE_HIT_AND_RUN = {
       ],
     },
     scene_karim_first: {
-      img: IMG_BASE_HITRUN + 'karim.jpg',
+      img: IMG_BASE_HITRUN + 'karim-defensive.jpg',
       label: 'الفصل الثاني — مواجهة كريم',
       text: 'واجهت كريم على طول برقم اللوحة الجزئي، من غير مقدمات. وشه اتغيّر لحظة، وقف صامت ثانيتين قبل ما يرد، وعينه راحت يمين وشمال زي حد بيدور على مخرج. "العربية دي... مش بتاعتي. ده يوسف صاحبها، إنت لازم تكلمه هو." كلامه سريع أكتر من اللازم، وإيده بتلعب في حافة تيشيرته بعصبية واضحة، رغم إنه بيحاول يبان هادي ومتماسك.',
       inspects: [
@@ -492,7 +492,7 @@ const CASE_HIT_AND_RUN = {
       choices: [ { label:'التالي ←', next:'scene_camera' } ],
     },
     scene_confront_karim: {
-      img: IMG_BASE_HITRUN + 'karim.jpg',
+      img: IMG_BASE_HITRUN + 'karim-confronted.jpg',
       label: 'الفصل الثالث — مواجهة مباشرة',
       text: 'واجهت كريم مباشرة بتناقض كلامه مع شهادة نور، بنفس اللهجة الهادية بس بإصرار واضح. سكت لحظة طويلة، بعدين قال بصوت مرتجف: "نور بتتخيل حاجات، إحنا كلنا كنا متوترين بعد الحادثة." لكن يده كانت بترتعش وهو بيتكلم، وده مش رد فعل شخص واثق من نفسه ومتأكد من كلامه.',
       choices: [ { label:'التالي ←', next:'scene_camera' } ],
@@ -527,7 +527,7 @@ const CASE_HIT_AND_RUN = {
       choices: [ { label:'التالي ←', next:'scene_pre_final' } ],
     },
     scene_pre_final: {
-      img: IMG_BASE_HITRUN + 'karim.jpg',
+      img: IMG_BASE_HITRUN + 'karim-confronted.jpg',
       label: 'الفصل الرابع — قبل الإغلاق',
       text: 'وصلت اللحظة الحاسمة. كل الأدلة قدامك مرتبة ومتماسكة: رقم اللوحة، شهادة نور، مقارنة الكاميرات، وتناقض إيصال التاكسي. كريم هو المسؤول عن حادثة مينا، وحاول يلصق التهمة بصاحبه يوسف من الخوف واللحظة اللي اتاخدت من غير تفكير. الطريقة اللي هتقفل بيها القضية دي هتفرق فعليًا في نتيجتها وفي مستقبل العلاقة بين المجموعة كلها.',
       choices: [ { label:'التالي ←', next:'scene_decision4' } ],
@@ -535,7 +535,7 @@ const CASE_HIT_AND_RUN = {
 
     // ============ القرار الأخير ============
     scene_decision4: {
-      img: IMG_BASE_HITRUN + 'karim.jpg',
+      img: IMG_BASE_HITRUN + 'karim-confronted.jpg',
       label: 'الفصل الرابع — المواجهة الأخيرة',
       text: 'قدامك 3 طرق تقفل بيهم القضية: تواجه كريم بكل الأدلة قدام المجموعة كلها علنًا، تاخده على جنب وتواجهه واحد لواحد بهدوء، أو تدّيه فرصة أخيرة يعترف بنفسه من غير ما تعرضله الأدلة كاملة أصلًا.',
       choices: [
@@ -571,7 +571,7 @@ const CASE_HIT_AND_RUN = {
     ending_voluntary: {
       isEnding: true,
       endingType: 'good',
-      img: IMG_BASE_HITRUN + 'karim.jpg',
+      img: IMG_BASE_HITRUN + 'karim-breaking.jpg',
       stamp: 'القضية اتقفلت',
       title: 'اعتراف طوعي',
       paragraphs: [

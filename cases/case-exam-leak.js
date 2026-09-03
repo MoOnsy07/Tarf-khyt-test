@@ -422,7 +422,7 @@ const CASE_EXAM_LEAK = {
       choices: [ { label:'التالي ←', next:'scene_committee' } ],
     },
     scene_committee: {
-      img: IMG_BASE_EXAM + 'adel.jpg',
+      img: IMG_BASE_EXAM + 'adel-professional.jpg',
       label: 'الفصل الثاني — أستاذ عادل',
       text: 'أستاذ عادل، مدرس الرياضيات وعضو في لجنة إعداد الامتحان، بيؤكد إنه من ضمن اللجنة: "أيوه، أنا وواحد تاني من المدرسين اللي شاركنا في مراجعة الأسئلة قبل الطبع النهائي." بتسأله عن سيف تحديدًا، فبينفي أي علاقة: "مستحيل، أنا بحافظ على سرية الأسئلة تمامًا، ده جزء أساسي من مصداقيتي المهنية."',
       choices: [ { label:'التالي ←', next:'scene_others' } ],
@@ -454,7 +454,7 @@ const CASE_EXAM_LEAK = {
       choices: [ { label:'التالي ←', next:'scene_confront_adel2' } ],
     },
     scene_confront_adel: {
-      img: IMG_BASE_EXAM + 'adel.jpg',
+      img: IMG_BASE_EXAM + 'adel-denying.jpg',
       label: 'الفصل الثالث — مواجهة مباشرة',
       text: 'واجهت أستاذ عادل بسؤال مباشر: "سيف من طلبة مركزك، صح؟ وإيه طبيعة تواصلك معاه بره مواعيد الحصة؟" بيرد بسرعة: "أيوه سيف عندي في المجموعة. التواصل المفروض يبقى في جروب المراجعة بس، وأنا ما بعتلوش أسئلة امتحان ولا طلبت منه ينشر حاجة."',
       choices: [ { label:'التالي ←', next:'scene_confront_adel2' } ],
@@ -482,13 +482,13 @@ const CASE_EXAM_LEAK = {
       choices: [ { label:'التالي ←', next:'scene_pre_final' } ],
     },
     scene_pre_final: {
-      img: IMG_BASE_EXAM + 'adel.jpg',
+      img: IMG_BASE_EXAM + 'adel-denying.jpg',
       label: 'الفصل الرابع — قبل الإغلاق',
       text: 'كل الأدلة جاهزة: وصول عادل للجنة الإعداد، تتبع الرقم والملف لمركزه، ونمط توزيع سيف المنظم. الطريقة اللي هتقفل بيها القضية دي هتفرق في مصير الامتحان على مئات الطلبة.',
       choices: [ { label:'التالي ←', next:'scene_decision4' } ],
     },
     scene_decision4: {
-      img: IMG_BASE_EXAM + 'adel.jpg',
+      img: IMG_BASE_EXAM + 'adel-denying.jpg',
       label: 'الفصل الرابع — القرار الأخير',
       text: 'قدامك 3 طرق تقفل بيهم القضية: تبلغ الإدارة التعليمية رسميًا بواقعة تسريب كاملة (هتغيّر النموذج وتأجل الامتحان)، تقترح تغيير النموذج فورًا من غير فضح عادل قدام المدرسة كلها، أو تدّي عادل فرصة يعترف بنفسه للناظرة قبل ما القرار الرسمي يتاخد.',
       choices: [
@@ -518,7 +518,7 @@ const CASE_EXAM_LEAK = {
     },
     ending_good_confession: {
       isEnding: true, endingType: 'good',
-      img: IMG_BASE_EXAM + 'adel.jpg',
+      img: IMG_BASE_EXAM + 'adel-confessing.jpg',
       stamp: 'القضية اتقفلت', title: 'اعتراف قبل الحكم',
       paragraphs: [
         'دّيت عادل فرصة يعترف بنفسه للناظرة قبل ما القرار الرسمي يتاخد. بعد لحظة صمت طويلة، اعترف بكل حاجة — إنه بعت النسخة لسيف من غير ما يفكر في العواقب، وإنه نادم بشدة على قرار اتخده في لحظة ضعف.',

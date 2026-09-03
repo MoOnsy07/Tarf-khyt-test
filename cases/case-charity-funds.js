@@ -385,7 +385,7 @@ const CASE_CHARITY_FUNDS = {
       choices: [ { label:'التالي ←', next:'scene_hisham_interview' } ],
     },
     scene_hisham_interview: {
-      img: IMG_BASE_CHARITY + 'hisham.jpg',
+      img: IMG_BASE_CHARITY + 'hisham-welcoming.jpg',
       label: 'الفصل الثاني — هشام',
       text: 'هشام، مؤسس ورئيس مجلس إدارة الجمعية، بيستقبلك بترحاب زايد شوية. لما تسأله عن تأخير تحويل مبلغ الطفل المريض، بيقولك: "في حالات تانية كانت أصعب واحتاجت الأولوية، الفلوس مش بتتوزع بالترتيب اللي الناس بتتبرع بيه، بتتوزع حسب شدة الحالة." بتطلب تشوف قائمة الحالات اللي اتصرفلها فعليًا، فبيوافق فورًا: "أكيد، القائمة موجودة عند المحاسب، مفيش أي حاجة نخبيها."',
       inspects: [
@@ -426,7 +426,7 @@ const CASE_CHARITY_FUNDS = {
       choices: [ { label:'التالي ←', next:'scene_confront_hisham2' } ],
     },
     scene_confront_hisham: {
-      img: IMG_BASE_CHARITY + 'hisham.jpg',
+      img: IMG_BASE_CHARITY + 'hisham-defensive.jpg',
       label: 'الفصل الثالث — مواجهة مباشرة',
       text: 'واجهت هشام بالتحويل المريب. ابتسامته اختفت لحظة، بعدين رد بسرعة: "الشركة دي بتشتغل معانا من زمان، إن كان قريبي بيديرها فده صدفة مش تلاعب." كلامه دفاعي أكتر من اللازم لموقف "بريء".',
       choices: [ { label:'التالي ←', next:'scene_confront_hisham2' } ],
@@ -454,13 +454,13 @@ const CASE_CHARITY_FUNDS = {
       choices: [ { label:'التالي ←', next:'scene_pre_final' } ],
     },
     scene_pre_final: {
-      img: IMG_BASE_CHARITY + 'hisham.jpg',
+      img: IMG_BASE_CHARITY + 'hisham-defensive.jpg',
       label: 'الفصل الرابع — قبل الإغلاق',
       text: 'كل الأدلة جاهزة: صلاحية هشام الكاملة، التحويل المريب، ربط الشركة المستلمة بيه، والفجوة الواضحة بين المعلن والمصروف فعليًا. الطريقة اللي هتقفل بيها القضية دي هتفرق فعليًا في مصير فلوس المرضى.',
       choices: [ { label:'التالي ←', next:'scene_decision4' } ],
     },
     scene_decision4: {
-      img: IMG_BASE_CHARITY + 'hisham.jpg',
+      img: IMG_BASE_CHARITY + 'hisham-defensive.jpg',
       label: 'الفصل الرابع — القرار الأخير',
       text: 'قدامك 3 طرق تقفل بيهم القضية: تسلّم الملف للنيابة كواقعة اختلاس رسمية، تطلب من مجلس أمناء الجمعية يتدخل ويجمّد صلاحيات هشام داخليًا، أو تدّيله فرصة يرجع المبلغ بالكامل مقابل استقالته الفورية من غير ملاحقة جنائية.',
       choices: [
@@ -490,7 +490,7 @@ const CASE_CHARITY_FUNDS = {
     },
     ending_good_resignation: {
       isEnding: true, endingType: 'good',
-      img: IMG_BASE_CHARITY + 'hisham.jpg',
+      img: IMG_BASE_CHARITY + 'hisham-exposed.jpg',
       stamp: 'القضية اتقفلت', title: 'استقالة مقابل الحقيقة',
       paragraphs: [
         'دّيت هشام فرصة يرجع المبلغ بالكامل من ماله الخاص مقابل استقالته الفورية من غير ملاحقة جنائية. وافق على طول — واضح إنه كان خايف من فضيحة قانونية كاملة أكتر من ما هو نادم.',
