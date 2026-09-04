@@ -33,3 +33,14 @@ const CASE_LAST_SEEN = {
   evidence: [],
   suspects: [],
 };
+
+// القضية دي لسه في مرحلة المراجعة — مخفية من المكتبة العامة مؤقتًا،
+// لكن الرابط المباشر v2/story.html يفضل شغال عادي لأي حد عنده الرابط.
+(function hideLastSeenFromPublicLibrary(){
+  if(typeof document === 'undefined') return;
+  try{
+    const style = document.createElement('style');
+    style.textContent = '.lib-card[data-case="last-seen"]{display:none!important;}';
+    (document.head || document.documentElement).appendChild(style);
+  }catch(_){}
+})();
