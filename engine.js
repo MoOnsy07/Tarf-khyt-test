@@ -131,12 +131,13 @@ const CATEGORY_LABELS = {
   thriller:'تشويق', kidnapping:'خطف', coldcase:'قضية قديمة', digital:'رقمية',
   accident:'حادث', fashion:'موضة', nightlife:'حياة ليلية', food:'طعام',
   forgery:'تزوير', arson:'حريق متعمد',
+  'story-mode':'قصة تفاعلية',
 };
 
 // مش كل tag داخلي لازم يتحول لزر فلتر. القائمة دي متعمدة عشان المكتبة
 // تفضل خفيفة على الموبايل، وباقي القضايا تفضل متاحة من "الكل" والبحث.
 const LIBRARY_FILTER_CATEGORIES = [
-  'murder', 'theft', 'disappearance', 'mystery', 'corruption', 'social', 'comedy'
+  'murder', 'theft', 'disappearance', 'mystery', 'corruption', 'social', 'comedy', 'story-mode'
 ];
 
 let CASE = null;         // القضية الحالية (object)
@@ -771,7 +772,7 @@ function showLibrary(){
         <div class="body">
           <h4>${c.title}</h4>
           <div class="meta">${c.caseNo} · ${c.estMinutes} دقيقة · ${c.difficulty}</div>
-          <div class="lib-location">📍 ${caseLocationText(c)}</div>
+          ${caseLocationText(c) ? `<div class="lib-location">📍 ${caseLocationText(c)}</div>` : ''}
           ${c.teaser ? `<p class="lib-teaser">${c.teaser}</p>` : ''}
           ${statusHTML}
           ${actionsHTML}
@@ -923,6 +924,13 @@ function showLibrary(){
         return;
       }
       // زرار "استكمل التحقيق" أو أي كليك تاني على الكارت — بيدخل عادي (بيرجّع تقدّمك المحفوظ لو موجود)
+      // استثناء: قضايا Story Mode ببناء منفصل (زي "آخر مُشاهد") بتوجّه لمحركها الخاص v2/
+      // بدل شاشة التحقيق العادية، لأنها مش مبنية بنفس نظام الاستجواب/الأدلة.
+      if(caseData.externalUrl){
+        gaTrack('external_case_opened', { case_id: String(caseData.id||'') });
+        location.href = caseData.externalUrl;
+        return;
+      }
       enterCase(caseData);
     });
   });
@@ -957,13 +965,14 @@ function openCasePreview(caseData, lock){
         ${tagsHTML}
         <h3 style="margin-bottom:4px;">${c.title}</h3>
         <div class="mono dim" style="font-size:12px;">${c.caseNo} · ${c.subtitle}</div>
-        <div class="case-location preview-location">📍 ${caseLocationText(c, true)}</div>
+        ${caseLocationText(c, true) ? `<div class="case-location preview-location">📍 ${caseLocationText(c, true)}</div>` : ''}
         <p style="font-size:14px; line-height:1.8; color:var(--ink-dim);">${c.teaser || ''}</p>
         <div style="display:flex; gap:14px; margin-top:14px; flex-wrap:wrap; font-size:12px; color:var(--ink-dim);">
           <span>⏱ ${c.estMinutes} دقيقة</span>
           <span>🎚 ${c.difficulty}</span>
+          ${c.externalUrl ? '<span>🔀 قصة متفرعة بالكامل</span>' : `
           <span>🕵️ ${c.suspects.length} مشتبه بيهم</span>
-          <span>🔍 ${c.evidence.length} دليل</span>
+          <span>🔍 ${c.evidence.length} دليل</span>`}
         </div>
         <button class="btn" id="previewEnter" style="width:100%; margin-top:16px;">
           ${lock.locked ? 'خلّص الحلقة اللي قبلها الأول' : 'ابدأ التحقيق ←'}
@@ -982,6 +991,11 @@ function openCasePreview(caseData, lock){
   } else {
     enterBtn.addEventListener('click', ()=>{
       overlay.remove();
+      if(c.externalUrl){
+        gaTrack('external_case_opened', { case_id: String(c.id||'') });
+        location.href = c.externalUrl;
+        return;
+      }
       enterCase(c);
     });
   }
